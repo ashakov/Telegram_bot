@@ -6,7 +6,6 @@ import telegram.ext
 import types
 from telegram.ext import Updater, MessageHandler, CommandHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-# rest of the code here
 import telebot
 import openpyxl
 from openpyxl import Workbook
