@@ -14,7 +14,7 @@ from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardBut
 from telebot import types
 
 
-bot = telebot.TeleBot('6100483283:AAGAXER5F5lEn7f_vZaRc0Ofsik_UoPZ8H4')
+bot = telebot.TeleBot('token')
 bot.delete_webhook()
 wb = Workbook()
 ws = wb.active
