@@ -27,7 +27,7 @@ sheet["C1"] = "User Name"
 sheet["D1"] = "Question"
 sheet["E1"] = "Response"
 
-bot = telebot.TeleBot('6100483283:AAGAXER5F5lEn7f_vZaRc0Ofsik_UoPZ8H4')
+bot = telebot.TeleBot('token')
 bot.delete_webhook()
 
 
