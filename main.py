@@ -1,15 +1,8 @@
 
-import telebot
-import telegram
-import openpyxl
-from openpyxl import Workbook
-import telegram.ext
-import types
-from telegram.ext import Updater, MessageHandler, CommandHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import telebot
 import openpyxl
-from openpyxl import Workbook
+
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 
 from datetime import datetime
@@ -27,8 +20,8 @@ sheet["C1"] = "User Name"
 sheet["D1"] = "Question"
 sheet["E1"] = "Response"
 
-bot = telebot.TeleBot('token')
-bot.delete_webhook()
+bot = telebot.TeleBot('6100483283:AAGAXER5F5lEn7f_vZaRc0Ofsik_UoPZ8H4')
+#bot.delete_webhook()
 
 
 # функция для записи ответа пользователя в Excel файл

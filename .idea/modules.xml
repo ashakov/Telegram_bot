@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/../LS_DAGS/.idea/LS_DAGS.iml" filepath="$PROJECT_DIR$/../LS_DAGS/.idea/LS_DAGS.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/TelegramApp.iml" filepath="$PROJECT_DIR$/.idea/TelegramApp.iml" />
     </modules>
   </component>
