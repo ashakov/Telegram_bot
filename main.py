@@ -66,7 +66,10 @@ def ask_traffic_source(message):
     keyboard.add(InlineKeyboardButton("Нет активных источников", callback_data="no_active"))
 
     # Отправляем вопрос "Выберите источник трафика" с клавиатурой
-    bot.send_message(message.chat.id, "Укажите источник трафика, с которым планируете работать:", reply_markup=keyboard)
+    bot.send_message(message.chat.id, "Укажите источники трафика, с которыми планируете работать. Также, информируем вас о ряде запрещенных источников, которые не сможем согласовать: "
+                                      "трафик с порнографических сайтов, контекстная реклама с указанием бренда Рекламодателя,"
+                                      " мотивированный трафик, спам-рассылка в личных сообщениях в аккаунтах социальных сетей, "
+                                      "трафик из Фейсбук, Инстаграм, Тик Ток.", reply_markup=keyboard)
     log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Укажите почту, на которую вы регистрировались", message.text)
 
     #Ответы кнопок:
@@ -96,7 +99,7 @@ def handle_callback_query(call):
         bot.send_message(call.message.chat.id, "Укажите, по каким ключам планируете запускать рекламу, где? При запуске через ЯД, пришлите статистику из ЛК ЯД")
         #save_to_excel(call)
     elif call.data == "social":
-        bot.send_message(call.message.chat.id, "Укажите, являетесь ли вы владельцем сообщества/ планируете закупать рекламу. Прикрепите ссылки. Если это группа ВК - пришлите статистику по охватам")
+        bot.send_message(call.message.chat.id, "Укажите, являетесь ли вы владельцем сообщества/ планируете закупать рекламу. Прикрепите ссылки. Если это группа ВК - пришлите статистику по ее охватам")
       #  save_to_excel(call)
     elif call.data == "streaming":
         bot.send_message(call.message.chat.id, "Укажите ссылки на стримы, прикрепите портфолио с опытом в сфере стрим-индустрии")
@@ -110,6 +113,40 @@ def handle_callback_query(call):
     log_response(datetime.now(), call.message.chat.id, call.from_user.first_name, "Источник трафика", call.data)
 
 
+@bot.message_handler(content_types=['document'])
+def save_document(message):
+    document = message.document
+    file_info = bot.get_file(document.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    # сохраняем файл на сервере
+    with open(document.file_name, 'wb') as new_file:
+        new_file.write(downloaded_file)
+
+        # Пересылаем документ другому пользователю
+    bot.forward_message(62667001, chat_id, message_id=message.message_id)
+
+@bot.message_handler(content_types=['photo'])
+def save_image(message):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    file_id = message.photo[-1].file_id
+    file_name = f"photo_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
+    file_info = bot.get_file(file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+
+    # save file
+    with open(file_name, 'wb') as new_file:
+        new_file.write(downloaded_file)
+
+    # send to specified user
+    target_user_id = 62667001  # replace with target user's ID
+    caption = f"Received from user {user_id}"
+    with open(file_name, 'rb') as photo:
+        bot.send_photo(chat_id=target_user_id, photo=photo, caption=caption)
+    # remove local file
+    os.remove(file_name)
 
 @bot.message_handler(content_types=['text'])
 def ask_experience(message):
@@ -130,10 +167,15 @@ def ask_experience(message):
 @bot.message_handler(content_types=['text'])
 def send_statistics(message):
     if message.text == "Да":
-        # Отправ
-        # ляем вопрос "Какая у вас почта?" и ждем ответа
-        bot.send_message(message.chat.id, "В какой вертикали имеется статистика?")
-        bot.register_next_step_handler(message, stat_requester)
+        # Отправляем вопрос "Какая у вас почта?" и ждем ответа
+        keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add(KeyboardButton('Беттинг'))
+        keyboard.add(KeyboardButton('Гемблинг'))
+        keyboard.add(KeyboardButton('Фин. офферы'))
+        keyboard.add(KeyboardButton('Другие'))
+
+        bot.send_message(message.chat.id, "По работе в какой вертикали арбитража трафика имеется статистика?", reply_markup=keyboard)
+        bot.register_next_step_handler(message, prev_payments)
 
     #    save_to_excel(message)
         #bot.register_next_step_handler(message, ask_traffic_source)
@@ -146,17 +188,47 @@ def send_statistics(message):
     log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Был ли у вас опыт в сфере арбитража трафика?", message.text)
 
 @bot.message_handler(content_types=['text'])
+def prev_payments(message):
+    # Создаем клавиатуру
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add(KeyboardButton('Партнерская программа'))
+    keyboard.add(KeyboardButton('Фикс. оплата'))
+
+    bot.send_message(message.chat.id, "Вы работали по партнерской программе/по фиксированной оплате?", reply_markup=keyboard)
+    bot.register_next_step_handler(message, stat_requester)
+    log_response(datetime.now(), message.chat.id, message.from_user.first_name, "По работе в какой вертикали арбитража трафика имеется статистика?", message.text)
+
+
+@bot.message_handler(content_types=['text'])
 def stat_requester(message):
-    bot.send_message(message.chat.id, "Необходимо прислать статистику в формате видео по следующей инструкции:"
+    if message.text == 'Партнерская программа':
+        bot.send_message(message.chat.id, "Необходимо прислать статистику в формате видео по следующей инструкции:"
                                       " 1. Войдите в ЛК;"
                                       " 2. Перейдите в раздел статистики; "
                                       "3. Продемонстрируйте статистику по конверсиям (ftd, std (rd), сумма депозитов, хиты/хосты, переходы, уники при наличии) "
                                       "за различные месяцы в разрезе каждого отдельно (например, отдельно за ноябрь, за декабрь, за январь); "
                                       "4. Статистика в идеале должна быть свежей.")
-    log_response(datetime.now(), message.chat.id, message.from_user.first_name, "В какой вертикали имеется стат-ка?", message.text)
+    elif message.text == 'Фикс. оплата':
+        bot.send_message(message.chat.id, "Укажите, с какой компанией работали по данной модели? "
+                                          "Пришлите пример рекламной интеграции в зависимости от вашего источника трафика (скрин из группы, текст поста, ссылка на видео)")
+
+
+    log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Вы работали по партнерской программе/по фиксированно оплате?", message.text)
     bot.register_next_step_handler(message, final_message)
-@bot.message_handler(content_types=['text'])
+
+@bot.message_handler(content_types=['text','docment'])
 def final_message(message):
+    document = message.document
+    file_info = bot.get_file(document.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    # сохраняем файл на сервере
+    with open(document.file_name, 'wb') as new_file:
+        new_file.write(downloaded_file)
+
+        # Пересылаем документ другому пользователю
+    bot.forward_message(62667001, chat_id, message_id=message.message_id)
     bot.send_message(message.chat.id, "Если ваша заявка пройдет модерацию, с вами свяжется "
                                       "менеджер в течение 1-3 дней в зависимости от загруженности."
                                       " Если менеджер с вами не связался, ваша заявка не была апрувлена по трем причинам: "
