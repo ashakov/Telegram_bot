@@ -250,6 +250,6 @@ def final_message(message):
     #bot.stop_polling()
     #bot.stop_bot()
 
-keep_alive()#запускаем flask-сервер в отдельном потоке..
+#keep_alive()#запускаем flask-сервер в отдельном потоке..
 
 bot.polling(non_stop=True, interval=0) #запуск бота
