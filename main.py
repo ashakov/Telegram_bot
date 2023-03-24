@@ -1,12 +1,19 @@
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+import os
+from background import keep_alive #импорт функции для поддержки работоспособности
+import pip
+pip.main(['install', 'python-telegram-bot', 'pytelegrambotapi'])
 import telebot
+import time
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import openpyxl
 
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 
 from datetime import datetime
 
+
+bot = telebot.TeleBot('6100483283:AAGAXER5F5lEn7f_vZaRc0Ofsik_UoPZ8H4')
 
 
 # create a new Excel workbook and select the active sheet
@@ -112,6 +119,19 @@ def handle_callback_query(call):
      #   save_to_excel(call)
     log_response(datetime.now(), call.message.chat.id, call.from_user.first_name, "Источник трафика", call.data)
 
+def forward_video(update, context):
+    chat_id = update.message.chat_id
+    video_id = update.message.video.file_id
+    file_info = bot.get_file(video.file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
+    #chat_id = message.chat.id
+    user_id = message.from_user.id
+    # сохраняем файл на сервере
+    with open(document.file_name, 'wb') as new_file:
+        new_file.write(downloaded_file)
+
+    bot.forward_message(62667001, chat_id, message_id=update.message.message_id)
+
 
 @bot.message_handler(content_types=['document'])
 def save_document(message):
@@ -182,7 +202,8 @@ def send_statistics(message):
     elif message.text == "Нет":
         bot.send_message(message.chat.id, "Жаль, что у вас нет опыта. В данный момент мы не можем с вами сотрудничать.")
      #   save_to_excel(message)
-        bot.stop_bot()
+        #bot.stop_polling()
+      #bot.stop_bot()
     # Сохраняем данные пользователя в файл# Сохраняем данные пользователя в файл
 
     log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Был ли у вас опыт в сфере арбитража трафика?", message.text)
@@ -216,19 +237,8 @@ def stat_requester(message):
     log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Вы работали по партнерской программе/по фиксированно оплате?", message.text)
     bot.register_next_step_handler(message, final_message)
 
-@bot.message_handler(content_types=['text','docment'])
+@bot.message_handler(content_types=['text','docment','photo'])
 def final_message(message):
-    document = message.document
-    file_info = bot.get_file(document.file_id)
-    downloaded_file = bot.download_file(file_info.file_path)
-    chat_id = message.chat.id
-    user_id = message.from_user.id
-    # сохраняем файл на сервере
-    with open(document.file_name, 'wb') as new_file:
-        new_file.write(downloaded_file)
-
-        # Пересылаем документ другому пользователю
-    bot.forward_message(62667001, chat_id, message_id=message.message_id)
     bot.send_message(message.chat.id, "Если ваша заявка пройдет модерацию, с вами свяжется "
                                       "менеджер в течение 1-3 дней в зависимости от загруженности."
                                       " Если менеджер с вами не связался, ваша заявка не была апрувлена по трем причинам: "
@@ -237,8 +247,9 @@ def final_message(message):
                                       "- нет активных источников на руках: если вы в процессе создания источника, свяжитесь с нами по готовности (ИСКЛЮЧЕНИЕ: ваш источник трафика ASO, и вы планируете делать приложение под БК Лига Ставок. "
                                       "Просим быть внимательными и не оставлять вопросы без ответа. Это очень важно при принятии решения! :)")
     log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Запрос стат-ки", message.text)
+    #bot.stop_polling()
+    #bot.stop_bot()
 
-    bot.stop_bot()
+keep_alive()#запускаем flask-сервер в отдельном потоке..
 
-
-bot.polling(none_stop=True)
+bot.polling(non_stop=True, interval=0) #запуск бота
