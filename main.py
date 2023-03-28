@@ -1,4 +1,3 @@
-
 import os
 from background import keep_alive #импорт функции для поддержки работоспособности
 import pip
@@ -13,8 +12,12 @@ from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardBut
 from datetime import datetime
 
 
-bot = telebot.TeleBot('6100483283:AAGAXER5F5lEn7f_vZaRc0Ofsik_UoPZ8H4')
+# Определяем состояние чата
+chat_state = {}
 
+# Определяем возможные состояния чата
+STATE_DEFAULT = 'default'
+STATE_ADD_RESPONSE = 'add_response'
 
 # create a new Excel workbook and select the active sheet
 workbook = openpyxl.Workbook()
@@ -43,20 +46,21 @@ def start(message):
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add(KeyboardButton('Да, продолжить'))
     #keyboard.add(KeyboardButton('Нет'))
-
+    chat_id = message.chat.id
+    # Сохраняем состояние чата в начальное значение
+    chat_state[chat_id] = STATE_DEFAULT
     # Отправляем приветственное сообщение с клавиатурой Да/Нет
-    bot.send_message(message.chat.id, f"Привет, {message.from_user.first_name}! Мы очень рады видеть тебя здесь! "
-                                      f"Чтобы скорее начать работу, пройди несколько несложных шагов. Готов начать?",
+    bot.send_message(message.chat.id, f"<code>Привет, {message.from_user.first_name}! Мы очень рады видеть тебя здесь! "
+                                      f"Чтобы скорее начать работу, пройди несколько несложных шагов. Готов начать?</code>", parse_mode='HTML' ,
                      reply_markup=keyboard)
+    bot.register_next_step_handler(message, ask_email)
 
-
-@bot.message_handler(func=lambda message: message.text == "Да, продолжить")
+@bot.message_handler(content_types=['text'])
 def ask_email(message):
     # Отправляем вопрос "Какая у вас почта?" и ждем ответа
-    bot.send_message(message.chat.id, "Укажите почту, на которую вы регистрировались")
-    bot.register_next_step_handler(message, ask_traffic_source)
+    bot.send_message(message.chat.id, "<code>Укажите почту, под которой вы регистрировались.</code>", parse_mode='HTML')
     log_response(datetime.now(),message.chat.id, message.from_user.first_name, "Готовность", message.text)
-
+    bot.register_next_step_handler(message, ask_traffic_source)
     #save_to_excel(message) # add this line
 
 # Обработчик ответа на вопрос "Какая у вас почта?"
@@ -73,29 +77,32 @@ def ask_traffic_source(message):
     keyboard.add(InlineKeyboardButton("Нет активных источников", callback_data="no_active"))
 
     # Отправляем вопрос "Выберите источник трафика" с клавиатурой
-    bot.send_message(message.chat.id, "Укажите источники трафика, с которыми планируете работать. Также, информируем вас о ряде запрещенных источников, которые не сможем согласовать: "
-                                      "трафик с порнографических сайтов, контекстная реклама с указанием бренда Рекламодателя,"
-                                      " мотивированный трафик, спам-рассылка в личных сообщениях в аккаунтах социальных сетей, "
-                                      "трафик из Фейсбук, Инстаграм, Тик Ток.", reply_markup=keyboard)
+    bot.send_message(message.chat.id, "<code>Укажите источники трафика, с которыми планируете работать. Также, информируем вас о ряде запрещенных источников, которые не сможем согласовать:\n "
+                                      "трафик с порнографических сайтов, контекстная реклама с указанием бренда Рекламодателя,\n"
+                                      " мотивированный трафик,\n"
+                                      "спам-рассылка в личных сообщениях в аккаунтах социальных сетей,\n "
+                                      "трафик из Фейсбук, Инстаграм, Тик Ток.</code>", reply_markup=keyboard, parse_mode='HTML')
     log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Укажите почту, на которую вы регистрировались", message.text)
-
+    bot.register_next_step_handler(message, handle_callback_query)
     #Ответы кнопок:
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callback_query(call):
-    # получаем ID чата, из которого пришел запрос
-    chat_id = call.message.chat.id
+    #получаем ID чата, из которого пришел запрос
+    chat_id = call.message.chat.id if call.message else call.chat.id
 
     # проверяем, какую кнопку нажал пользователь
     if call.data == 'seo':
         # если пользователь нажал кнопку "Да", отправляем сообщение "Вы нажали Да"
-        bot.send_message(chat_id, "Укажите ссылку на сайт, прикрепите статистику по посещаемости сайта, опишите,как планируете рекламировать БК «Лига Ставок»: баннер, рейтинг и т.д.")
+        bot.send_message(chat_id, "-Укажите ссылку на сайт,\n "
+                                  "-прикрепите статистику по посещаемости сайта, \n"
+                                 "-опишите,как планируете рекламировать БК «Лига Ставок»: баннер, рейтинг и т.д.")
         #save_to_excel(call)  # add this line
         #bot.register_next_step_handler(message, ask_experience)
     elif call.data == 'aso':
         # если пользователь нажал кнопку "Нет", отправляем сообщение "Вы нажали Нет"
-        bot.send_message(chat_id, "Укажите ссылку на приложение, место в рейтинге. "
-                                      "Если планируете делать брендовое приложение - опишите его вид, механику и т.д., "
-                                      "примерно сроки реализации")
+        bot.send_message(chat_id, "-Укажите ссылку на приложение, место в рейтинге.\n "
+                                      "-Если планируете делать брендовое приложение - опишите его вид, механику и т.д., \n"
+                                      "-примерно сроки реализации")
         #save_to_excel(call)
     elif call.data == 'no_active':
         # если пользователь нажал кнопку "Нет", отправляем сообщение "Вы нажали Нет"
@@ -103,27 +110,40 @@ def handle_callback_query(call):
       #  save_to_excel(call)
         bot.stop_bot()
     elif call.data == "context ad":
-        bot.send_message(call.message.chat.id, "Укажите, по каким ключам планируете запускать рекламу, где? При запуске через ЯД, пришлите статистику из ЛК ЯД")
+        bot.send_message(chat_id, "-Укажите, по каким ключам планируете запускать рекламу, где?\n -При запуске через ЯД, пришлите статистику из ЛК ЯД.\n *Для данного источника трафика может потребоваться дополнительная проверка после прохождения модерации.")
         #save_to_excel(call)
     elif call.data == "social":
-        bot.send_message(call.message.chat.id, "Укажите, являетесь ли вы владельцем сообщества/ планируете закупать рекламу. Прикрепите ссылки. Если это группа ВК - пришлите статистику по ее охватам")
+        bot.send_message(chat_id, "-Укажите, являетесь ли вы владельцем сообщества/планируете закупать рекламу;\n -Прикрепите ссылки на источники. Если это группа в ВК - пришлите статистику по ее охватам;\n -Прикрепите подтверждение того, что владеете каналом/группой.")
       #  save_to_excel(call)
     elif call.data == "streaming":
-        bot.send_message(call.message.chat.id, "Укажите ссылки на стримы, прикрепите портфолио с опытом в сфере стрим-индустрии")
+        bot.send_message(chat_id, "-Укажите ссылки на стримы;\n -Прикрепите портфолио с опытом в сфере стрим-индустрии;\n -Укажите, на каких платформах планируете проводить эфиры.")
       #  save_to_excel(call)
     elif call.data == "youtube":
-        bot.send_message(call.message.chat.id, "Укажите ссылку на ютуб канал/каналы, пришлите статистику по охватам")
+        bot.send_message(chat_id, "-Укажите ссылку/и на YouTube канал/ы;\n -Прикрепите статистику по охватам канала/ов; \n-Укажите, планируете ли вы закуп рекламы на данной платформе или канал принадлежит вам;\n -Если источник/и ваш/и- прикрепите подтверждение.")
     #    save_to_excel(call)
     elif call.data == "others":
-        bot.send_message(call.message.chat.id, "Укажите источник самостоятельно")
+        bot.send_message(chat_id, "Укажите источник самостоятельно")
      #   save_to_excel(call)
-    log_response(datetime.now(), call.message.chat.id, call.from_user.first_name, "Источник трафика", call.data)
+    log_response(datetime.now(), chat_id, call.from_user.first_name, "Источник трафика", call.data)
+    bot.register_next_step_handler(call.message, process_source_step)
+
+# Обработчик ввода источника пользователем
+def process_source_step(message):
+    source = message.text
+    # Сохраняем ответ пользователя в базу данных или файл, используя библиотеку для работы с БД или файловой системой
+    # В данном примере просто выводим ответ в консоль
+    print(f'Пользователь ввел источник: {source}')
+    # Отправляем сообщение пользователю с подтверждением введенной почты
+    bot.send_message(message.chat.id, f'Спасибо, вы ввели источник: {source}')
+    log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Источник трафика", message.text)
+    bot.register_next_step_handler(message, ask_experience)
 
 def forward_video(update, context):
     chat_id = update.message.chat_id
     video_id = update.message.video.file_id
     file_info = bot.get_file(video.file_id)
     downloaded_file = bot.download_file(file_info.file_path)
+
     #chat_id = message.chat.id
     user_id = message.from_user.id
     # сохраняем файл на сервере
@@ -168,7 +188,7 @@ def save_image(message):
     # remove local file
     os.remove(file_name)
 
-@bot.message_handler(content_types=['text'])
+@bot.message_handler(content_types=['text','docment','photo'])
 def ask_experience(message):
     # Сохраняем ответ на вопрос "Выберите источник трафика"
     #traffic_source = call.data
@@ -187,18 +207,20 @@ def ask_experience(message):
 @bot.message_handler(content_types=['text'])
 def send_statistics(message):
     if message.text == "Да":
-        # Отправляем вопрос "Какая у вас почта?" и ждем ответа
+        # Отправляем Запрос информации по источникам" и ждем ответа
         keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
         keyboard.add(KeyboardButton('Беттинг'))
         keyboard.add(KeyboardButton('Гемблинг'))
         keyboard.add(KeyboardButton('Фин. офферы'))
-        keyboard.add(KeyboardButton('Другие'))
+        keyboard.add(KeyboardButton('Другие'), callback_data = 'others2')
 
         bot.send_message(message.chat.id, "По работе в какой вертикали арбитража трафика имеется статистика?", reply_markup=keyboard)
         bot.register_next_step_handler(message, prev_payments)
 
     #    save_to_excel(message)
         #bot.register_next_step_handler(message, ask_traffic_source)
+    elif message.text == "Другие":
+        bot.send_message(message.chat.id, "Укажите вертикаль самостоятельно", reply_markup=keyboard)
     elif message.text == "Нет":
         bot.send_message(message.chat.id, "Жаль, что у вас нет опыта. В данный момент мы не можем с вами сотрудничать.")
      #   save_to_excel(message)
@@ -223,15 +245,15 @@ def prev_payments(message):
 @bot.message_handler(content_types=['text'])
 def stat_requester(message):
     if message.text == 'Партнерская программа':
-        bot.send_message(message.chat.id, "Необходимо прислать статистику в формате видео по следующей инструкции:"
-                                      " 1. Войдите в ЛК;"
-                                      " 2. Перейдите в раздел статистики; "
-                                      "3. Продемонстрируйте статистику по конверсиям (ftd, std (rd), сумма депозитов, хиты/хосты, переходы, уники при наличии) "
-                                      "за различные месяцы в разрезе каждого отдельно (например, отдельно за ноябрь, за декабрь, за январь); "
-                                      "4. Статистика в идеале должна быть свежей.")
+        bot.send_message(message.chat.id, "<code>Необходимо прислать статистику в формате видео по следующей инструкции:\n"
+                                      " 1. Войдите в ЛК;\n"
+                                      " 2. Перейдите в раздел статистики;\n "
+                                      "3. Продемонстрируйте статистику по конверсиям (ftd, std (rd), сумма депозитов, хиты/хосты, переходы, уники при наличии)\n "
+                                      "за различные месяцы в разрезе каждого отдельно (например, отдельно за ноябрь, за декабрь, за январь); \n"
+                                      "4. Статистика в идеале должна быть свежей.</code>", parse_mode='HTML')
     elif message.text == 'Фикс. оплата':
-        bot.send_message(message.chat.id, "Укажите, с какой компанией работали по данной модели? "
-                                          "Пришлите пример рекламной интеграции в зависимости от вашего источника трафика (скрин из группы, текст поста, ссылка на видео)")
+        bot.send_message(message.chat.id, "<code>Укажите, с какой компанией работали по данной модели? "
+                                          "Пришлите пример рекламной интеграции в зависимости от вашего источника трафика (скрин из группы, текст поста, ссылка на видео)</code>", parse_mode='HTML')
 
 
     log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Вы работали по партнерской программе/по фиксированно оплате?", message.text)
@@ -239,13 +261,13 @@ def stat_requester(message):
 
 @bot.message_handler(content_types=['text','docment','photo'])
 def final_message(message):
-    bot.send_message(message.chat.id, "Если ваша заявка пройдет модерацию, с вами свяжется "
-                                      "менеджер в течение 1-3 дней в зависимости от загруженности."
-                                      " Если менеджер с вами не связался, ваша заявка не была апрувлена по трем причинам: "
-                                      "- низкое качество траффика по предоставленным данным; "
-                                      "- нарушение шаблона подачи заявки: какая-то информация из требуемого списка отсутствует; "
-                                      "- нет активных источников на руках: если вы в процессе создания источника, свяжитесь с нами по готовности (ИСКЛЮЧЕНИЕ: ваш источник трафика ASO, и вы планируете делать приложение под БК Лига Ставок. "
-                                      "Просим быть внимательными и не оставлять вопросы без ответа. Это очень важно при принятии решения! :)")
+    bot.send_message(message.chat.id, "<code>Если ваша заявка пройдет модерацию, с вами свяжется "
+                                      "менеджер в течение 1-3 дней в зависимости от загруженности.\n\n"
+                                      " Если менеджер с вами не связался, ваша заявка не была апрувлена по трем причинам: \n"
+                                      "- низкое качество траффика по предоставленным данным; \n"
+                                      "- нарушение шаблона подачи заявки: какая-то информация из требуемого списка отсутствует;\n "
+                                      "- нет активных источников на руках: если вы в процессе создания источника, свяжитесь с нами по готовности (ИСКЛЮЧЕНИЕ: ваш источник трафика ASO, и вы планируете делать приложение под БК Лига Ставок. \n"
+                                      "Просим быть внимательными и не оставлять вопросы без ответа. Это очень важно при принятии решения! :)</code>", parse_mode='HTML')
     log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Запрос стат-ки", message.text)
     #bot.stop_polling()
     #bot.stop_bot()
