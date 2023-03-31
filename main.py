@@ -229,6 +229,7 @@ def prev_payments(message):
     if message.text == "Другие":
         remove_keyboard = telebot.types.ReplyKeyboardRemove()
 
+
         bot.send_message(message.chat.id, "<code>Введите название вертикали, по которой есть статистика:</code>", parse_mode='HTML', reply_markup=remove_keyboard)
         bot.register_next_step_handler(message, send_other, keyboard)
         log_response(datetime.now(), message.chat.id, message.from_user.first_name,
