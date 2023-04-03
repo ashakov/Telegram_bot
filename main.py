@@ -32,8 +32,8 @@ bot = telebot.TeleBot('6100483283:AAGAXER5F5lEn7f_vZaRc0Ofsik_UoPZ8H4')
 
 
 # функция для записи ответа пользователя в Excel файл
-def log_response(timestamp, user_id, first_name, question, response):
-    row = (timestamp, user_id, first_name, question, response)
+def log_response(timestamp, user_id, first_name, question, response, file_name=None):
+    row = (timestamp, user_id, first_name, question, response, file_name)
     sheet.append(row)
     workbook.save("user_responses.xlsx")
 
@@ -135,6 +135,39 @@ def forward_video(message):
     bot.forward_message(62667001, chat_id, message.chat.id, message.message_id)
     log_response(datetime.now(), chat_id, message.from_user.first_name, "Отправлено видео пользователю", file_name)
 
+
+# Обработчик отправки фото
+@bot.message_handler(content_types=['photo'])
+def save_image(message):
+    user_id = message.from_user.id
+    chat_id = message.chat.id
+    photos = message.photo
+
+    # Обрабатываем каждую фотографию в сообщении
+    for photo in photos:
+        file_id = photo.file_id
+        file_name = f"photo_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
+        file_info = bot.get_file(file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+
+        # сохраняем файл на сервере
+        with open(file_name, 'wb') as new_file:
+            new_file.write(downloaded_file)
+
+        # отправляем фото другому пользователю
+        target_user_id = 62667001  # замените на ID целевого пользователя
+        caption = f"Получено от пользователя {user_id}"
+        with open(file_name, 'rb') as photo:
+            sent_message = bot.send_photo(chat_id=target_user_id, photo=photo, caption=caption)
+
+        # сохраняем комментарии в файл
+        log_response(datetime.now(), chat_id, message.from_user.first_name, f"Отправлено фото пользователю {target_user_id}", file_name=file_name, response=f"Комментарий к фото: {caption}")
+
+        # удаляем локальный файл
+        #os.remove(file_name)
+
+
+# Обработчик отправки документа
 @bot.message_handler(content_types=['document'])
 def save_document(message):
     document = message.document
@@ -142,37 +175,23 @@ def save_document(message):
     downloaded_file = bot.download_file(file_info.file_path)
     chat_id = message.chat.id
     user_id = message.from_user.id
-# сохраняем файл на сервере
+    # сохраняем файл на сервере
     file_name = document.file_name
     with open(file_name, 'wb') as new_file:
         new_file.write(downloaded_file)
-# Пересылаем документ другому пользователю
-    target_user_id = 62667001  # замените на ID целевого пользователя
-    bot.send_document(chat_id=target_user_id, data=downloaded_file, caption=f"Получено от пользователя {user_id}")
-    log_response(datetime.now(), chat_id, message.from_user.first_name, "Отправлен документ пользователю", file_name)
 
-@bot.message_handler(content_types=['photo'])
-def save_image(message):
-    user_id = message.from_user.id
-    chat_id = message.chat.id
-    file_id = message.photo[-1].file_id
-    file_name = f"photo_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
-    file_info = bot.get_file(file_id)
-    downloaded_file = bot.download_file(file_info.file_path)
-    # сохраняем файл на сервере
-    with open(file_name, 'wb') as new_file:
-        new_file.write(downloaded_file)
-
-    # отправляем фото другому пользователю
+    # Пересылаем документ другому пользователю
     target_user_id = 62667001  # замените на ID целевого пользователя
-    caption = f"Получено от пользователя {user_id}"
-    with open(file_name, 'rb') as photo:
-        bot.send_photo(chat_id=target_user_id, photo=photo, caption=caption)
+    sent_message = bot.send_document(chat_id=target_user_id, data=downloaded_file, caption=f"Получено от пользователя {user_id}")
+
+    # сохраняем комментарии в файл
+    log_response(datetime.now(), chat_id, message.from_user.first_name, "Отправлен документ пользователю", file_name=file_name)
+
+    # пересылаем сообщение с документом
+    bot.forward_message(target_user_id, chat_id, sent_message.message_id)
 
     # удаляем локальный файл
     #os.remove(file_name)
-    log_response(datetime.now(), chat_id, message.from_user.first_name, "Отправлено изображение пользователю", file_name)
-
 
 @bot.message_handler(content_types=['text'])
 def ask_experience(message):
