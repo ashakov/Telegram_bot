@@ -32,12 +32,10 @@ bot = telebot.TeleBot('6100483283:AAGAXER5F5lEn7f_vZaRc0Ofsik_UoPZ8H4')
 
 
 # функция для записи ответа пользователя в Excel файл
-def log_response(timestamp,user_id,first_name, question, response):
-    row = (timestamp,user_id, first_name, question, response)
+def log_response(timestamp, user_id, first_name, question, response):
+    row = (timestamp, user_id, first_name, question, response)
     sheet.append(row)
     workbook.save("user_responses.xlsx")
-
-
 
 
 @bot.message_handler(commands = ['start'])
@@ -120,37 +118,40 @@ def handle_callback_query(call):
     bot.register_next_step_handler(call.message, ask_experience)
 
 
-def forward_video(update, context):
-    chat_id = update.message.chat_id
-    video_id = update.message.video.file_id
-    file_info = bot.get_file(video.file_id)
+# Обработчик отправки видео
+@bot.message_handler(content_types=['video'])
+def forward_video(message):
+    chat_id = message.chat.id
+    video_id = message.video.file_id
+    file_info = bot.get_file(video_id)
     downloaded_file = bot.download_file(file_info.file_path)
-    #chat_id = message.chat.id
-    user_id = message.from_user.id
+    # определяем путь для сохранения видео
+    file_name = message.video.file_name
+    file_path = os.path.join('videos', file_name)
     # сохраняем файл на сервере
-    with open(document.file_name, 'wb') as new_file:
+    with open(file_path, 'wb') as new_file:
         new_file.write(downloaded_file)
+    # пересылаем видео пользователю
+    bot.forward_message(62667001, chat_id, message.chat.id, message.message_id)
+    log_response(datetime.now(), chat_id, message.from_user.first_name, "Отправлено видео пользователю", file_name)
 
-    bot.forward_message(62667001, chat_id, message_id=update.message.message_id)
-
-
-
-@bot.message_handler(content_types=['text', 'document'])
+@bot.message_handler(content_types=['document'])
 def save_document(message):
     document = message.document
     file_info = bot.get_file(document.file_id)
     downloaded_file = bot.download_file(file_info.file_path)
     chat_id = message.chat.id
     user_id = message.from_user.id
-    # сохраняем файл на сервере
-    with open(document.file_name, 'wb') as new_file:
+# сохраняем файл на сервере
+    file_name = document.file_name
+    with open(file_name, 'wb') as new_file:
         new_file.write(downloaded_file)
+# Пересылаем документ другому пользователю
+    target_user_id = 62667001  # замените на ID целевого пользователя
+    bot.send_document(chat_id=target_user_id, data=downloaded_file, caption=f"Получено от пользователя {user_id}")
+    log_response(datetime.now(), chat_id, message.from_user.first_name, "Отправлен документ пользователю", file_name)
 
-    # Пересылаем документ другому пользователю
-    bot.forward_message(62667001, chat_id, message_id=message.message_id)
-
-
-@bot.message_handler(content_types=['text', 'photo'])
+@bot.message_handler(content_types=['photo'])
 def save_image(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
@@ -158,7 +159,6 @@ def save_image(message):
     file_name = f"photo_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
     file_info = bot.get_file(file_id)
     downloaded_file = bot.download_file(file_info.file_path)
-
     # сохраняем файл на сервере
     with open(file_name, 'wb') as new_file:
         new_file.write(downloaded_file)
@@ -170,9 +170,11 @@ def save_image(message):
         bot.send_photo(chat_id=target_user_id, photo=photo, caption=caption)
 
     # удаляем локальный файл
-    os.remove(file_name)
+    #os.remove(file_name)
+    log_response(datetime.now(), chat_id, message.from_user.first_name, "Отправлено изображение пользователю", file_name)
 
-@bot.message_handler(content_types=['text','docment','photo'])
+
+@bot.message_handler(content_types=['text'])
 def ask_experience(message):
     # Сохраняем ответ на вопрос "Выберите источник трафика"
     #traffic_source = call.data
@@ -241,8 +243,8 @@ def prev_payments(message):
                      "По работе в какой вертикали арбитража трафика имеется статистика?", message.text)
         bot.register_next_step_handler(message, stat_requester)
 
-    log_response(datetime.now(), message.chat.id, message.from_user.first_name,
-                 "По работе в какой вертикали арбитража трафика имеется статистика?", message.text)
+    #log_response(datetime.now(), message.chat.id, message.from_user.first_name,
+              #   "По работе в какой вертикали арбитража трафика имеется статистика?", message.text)
 
 def send_other(message, prev_keyboard):
     # Сохраняем ответ на вопрос "Другие"
@@ -273,15 +275,16 @@ def stat_requester(message):
     log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Вы работали по партнерской программе/по фиксированно оплате?", message.text)
     bot.register_next_step_handler(message, final_message)
 
-@bot.message_handler(content_types=['text','docment','photo'])
+@bot.message_handler(content_types=['text'])
 def final_message(message):
+    remove_keyboard = telebot.types.ReplyKeyboardRemove()
     bot.send_message(message.chat.id, "<code>Если ваша заявка пройдет модерацию, с вами свяжется "
                                       "менеджер в течение 1-3 дней в зависимости от загруженности.\n\n"
                                       " Если менеджер с вами не связался, ваша заявка не была апрувлена по трем причинам: \n"
                                       "- низкое качество траффика по предоставленным данным; \n"
                                       "- нарушение шаблона подачи заявки: какая-то информация из требуемого списка отсутствует;\n "
                                       "- нет активных источников на руках: если вы в процессе создания источника, свяжитесь с нами по готовности (ИСКЛЮЧЕНИЕ: ваш источник трафика ASO, и вы планируете делать приложение под БК Лига Ставок. \n"
-                                      "Просим быть внимательными и не оставлять вопросы без ответа. Это очень важно при принятии решения! :)</code>", parse_mode='HTML')
+                                      "Просим быть внимательными и не оставлять вопросы без ответа. Это очень важно при принятии решения! :)</code>", parse_mode='HTML', reply_markup=remove_keyboard)
     log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Запрос стат-ки", message.text)
     #bot.stop_polling()
     #bot.stop_bot()
