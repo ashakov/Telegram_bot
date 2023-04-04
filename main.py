@@ -1,6 +1,6 @@
-#pip.main(['install', 'python-telegram-bot', 'pytelegrambotapi'])
+# pip.main(['install', 'python-telegram-bot', 'pytelegrambotapi'])
 import os
-from background import keep_alive #импорт функции для поддержки работоспособности
+from background import keep_alive  # импорт функции для поддержки работоспособности
 import pip
 import telebot
 import telegram
@@ -12,9 +12,6 @@ import io
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 
 from datetime import datetime
-
-
-
 
 # create a new Excel workbook and select the active sheet
 workbook = openpyxl.Workbook()
@@ -28,7 +25,9 @@ sheet["D1"] = "Question"
 sheet["E1"] = "Response"
 sheet["F1"] = "File_name"
 bot = telebot.TeleBot('6100483283:AAGAXER5F5lEn7f_vZaRc0Ofsik_UoPZ8H4')
-#bot.delete_webhook()
+
+
+# bot.delete_webhook()
 
 
 # функция для записи ответа пользователя в Excel файл
@@ -38,30 +37,54 @@ def log_response(timestamp, user_id, first_name, question, response, file_name=N
     workbook.save("user_responses.xlsx")
 
 
-@bot.message_handler(commands = ['start'])
+user_data = {}
+
+
+@bot.message_handler(commands=['start'])
 def start(message):
+    user_id = message.from_user.id
+
+    # Сбрасываем флаги при перезапуске бота
+    if user_id in user_data:
+        user_data[user_id]["asked_email"] = False
+        user_data[user_id]["asked_experience"] = False
+        # сбросьте флаги для других функций
+
     # Создаем клавиатуру Да/Нет
     keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add(KeyboardButton('Да, продолжить'))
-    #keyboard.add(KeyboardButton('Нет'))
+    # keyboard.add(KeyboardButton('Нет'))
 
     # Отправляем приветственное сообщение с клавиатурой Да/Нет
     bot.send_message(message.chat.id, f"<code>Привет, {message.from_user.first_name}! Мы очень рады видеть тебя здесь! "
-                                      f"Чтобы скорее начать работу, пройди несколько несложных шагов. Готов начать?</code>", parse_mode='HTML' ,
+                                      f"Чтобы скорее начать работу, пройди несколько несложных шагов. Готов начать?</code>",
+                     parse_mode='HTML',
                      reply_markup=keyboard)
     bot.register_next_step_handler(message, ask_email)
 
-@bot.message_handler(content_types=['text'])
+
+@bot.message_handler(func=lambda msg: msg.text == "Да" or msg.text == "Да, продолжить" or msg.text == "да")
 def ask_email(message):
+    user_id = message.from_user.id
+
+    # Если пользователь отсутствует в словаре, добавляем его с asked_email = False
+    if user_id not in user_data:
+        user_data[user_id] = {"asked_email": False}
+
+    # Если вопрос уже был задан, пропускаем его
+    if user_data[user_id]["asked_email"]:
+        return
+
     # Отправляем вопрос "Какая у вас почта?" и ждем ответа
     remove_keyboard = telebot.types.ReplyKeyboardRemove()
-    # Отправляем вопрос "Какая у вас почта?" и ждем ответа
     bot.send_message(message.chat.id, "<code>Укажите почту, под которой вы регистрировались.</code>", parse_mode='HTML',
                      reply_markup=remove_keyboard)
-    #bot.send_message(message.chat.id, "<code>Укажите почту, под которой вы регистрировались.</code>", parse_mode='HTML')
-    log_response(datetime.now(),message.chat.id, message.from_user.first_name, "Готовность", message.text)
+    log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Готовность", message.text)
     bot.register_next_step_handler(message, ask_traffic_source)
-    #save_to_excel(message) # add this line
+
+    # Устанавливаем asked_email в True
+    user_data[user_id]["asked_email"] = True
+
 
 def ask_traffic_source(message):
     # Создаем клавиатуру с вариантами ответов
@@ -76,15 +99,19 @@ def ask_traffic_source(message):
     keyboard.add(InlineKeyboardButton("Нет активных источников", callback_data="no_active"))
 
     # Отправляем вопрос "Выберите источник трафика" с клавиатурой
-    bot.send_message(message.chat.id, "<code>Укажите источники трафика, с которыми планируете работать. Также, информируем вас о ряде запрещенных источников, которые не сможем согласовать:\n "
-                                      "- трафик с порнографических сайтов, контекстная реклама с указанием бренда Рекламодателя,\n"
-                                      "- мотивированный трафик,\n"
-                                      "- спам-рассылка в личных сообщениях в аккаунтах социальных сетей,\n "
-                                      "- трафик из Фейсбук, Инстаграм, Тик Ток.</code>", reply_markup=keyboard, parse_mode='HTML')
-    log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Укажите почту, на которую вы регистрировались", message.text)
+    bot.send_message(message.chat.id,
+                     "<code>Укажите источники трафика, с которыми планируете работать. Также, информируем вас о ряде запрещенных источников, которые не сможем согласовать:\n "
+                     "- трафик с порнографических сайтов, контекстная реклама с указанием бренда Рекламодателя,\n"
+                     "- мотивированный трафик,\n"
+                     "- спам-рассылка в личных сообщениях в аккаунтах социальных сетей,\n "
+                     "- трафик из Фейсбук, Инстаграм, Тик Ток.</code>", reply_markup=keyboard, parse_mode='HTML')
+    log_response(datetime.now(), message.chat.id, message.from_user.first_name,
+                 "Укажите почту, на которую вы регистрировались", message.text)
     bot.register_callback_query_handler(message, handle_callback_query)
 
-    #Ответы кнопок:
+    # Ответы кнопок:
+
+
 @bot.callback_query_handler(func=lambda call: True)
 def handle_callback_query(call):
     # Получаем ID чата, из которого пришел запрос
@@ -101,9 +128,11 @@ def handle_callback_query(call):
                                   "- Если планируете делать брендовое приложение - опишите его вид, механику и т.д., \n"
                                   "- примерно сроки реализации")
     elif call.data == "context ad":
-        bot.send_message(chat_id, "Укажите, по каким ключам планируете запускать рекламу, где? При запуске через ЯД, пришлите статистику из ЛК ЯД")
+        bot.send_message(chat_id,
+                         "Укажите, по каким ключам планируете запускать рекламу, где? При запуске через ЯД, пришлите статистику из ЛК ЯД")
     elif call.data == "social":
-        bot.send_message(chat_id, "Укажите, являетесь ли вы владельцем сообщества/ планируете закупать рекламу. Прикрепите ссылки. Если это группа ВК - пришлите статистику по охватам")
+        bot.send_message(chat_id,
+                         "Укажите, являетесь ли вы владельцем сообщества/ планируете закупать рекламу. Прикрепите ссылки. Если это группа ВК - пришлите статистику по охватам")
     elif call.data == "streaming":
         bot.send_message(chat_id, "Укажите ссылки на стримы, прикрепите портфолио с опытом в сфере стрим-индустрии")
     elif call.data == "youtube":
@@ -111,33 +140,45 @@ def handle_callback_query(call):
     elif call.data == "others":
         bot.send_message(chat_id, "Укажите источник самостоятельно")
     elif call.data == "no_active":
-        bot.send_message(chat_id, "Жаль, что у вас нет активных источников. В данный момент мы не можем с вами сотрудничать.")
+        bot.send_message(chat_id,
+                         "Жаль, что у вас нет активных источников. В данный момент мы не можем с вами сотрудничать.")
         bot.restart_bot()
 
     log_response(datetime.now(), chat_id, call.from_user.first_name, "Источник трафика", call.data)
     bot.register_next_step_handler(call.message, ask_experience)
 
 
-# Обработчик отправки видео
 @bot.message_handler(content_types=['video'])
 def forward_video(message):
+    user_id = message.from_user.id
     chat_id = message.chat.id
-    video_id = message.video.file_id
+    video = message.video
+
+    video_id = video.file_id
+    file_name = f"video_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.mp4"
     file_info = bot.get_file(video_id)
     downloaded_file = bot.download_file(file_info.file_path)
-    # определяем путь для сохранения видео
-    file_name = message.video.file_name
-    file_path = os.path.join('videos', file_name)
+
     # сохраняем файл на сервере
-    with open(file_path, 'wb') as new_file:
+    with open(file_name, 'wb') as new_file:
         new_file.write(downloaded_file)
-    # пересылаем видео пользователю
-    bot.forward_message(62667001, chat_id, message.chat.id, message.message_id)
-    log_response(datetime.now(), chat_id, message.from_user.first_name, f"Отправлено видео пользователю {62667001}", response=f"Комментарий к видео: {message.caption if message.caption else 'нет комментария'}")
+
+    # отправляем видео другому пользователю
+    target_user_id = 62667001  # замените на ID целевого пользователя
+    caption = f"Получено от пользователя {user_id}: {message.caption if message.caption else 'нет комментария'}"
+    with open(file_name, 'rb') as video:
+        sent_message = bot.send_video(chat_id=target_user_id, data=video, caption=caption)
+
+    # сохраняем комментарии в файл
+    log_response(datetime.now(), chat_id, message.from_user.first_name,
+                 f"Отправлено видео пользователю {target_user_id}", file_name=file_name,
+                 response=f"Комментарий к видео: {caption}")
+
+    # удаляем локальный файл
+    # os.remove(file_name)
 
     # Очищаем стек обработчиков для текущего чата
     bot.clear_step_handler_by_chat_id(chat_id)
-
 
 
 @bot.message_handler(content_types=['photo'])
@@ -168,7 +209,7 @@ def save_image(message):
     log_response(datetime.now(), user_id, message.from_user.first_name, "Photo", file_name, comment)
 
     # удаляем локальный файл
-    #os.remove(file_name)
+    # os.remove(file_name)
 
     # Очищаем стек обработчиков для текущего чата
     bot.clear_step_handler_by_chat_id(chat_id)
@@ -191,43 +232,70 @@ def save_document(message):
     bot.forward_message(target_user_id, chat_id, message.message_id)
 
     # Сохраняем комментарии в файл
-    log_response(datetime.now(), chat_id, message.from_user.first_name, f"Отправлен документ пользователю {target_user_id}", file_name=document.file_name, response=f"Комментарий к документу: {message.caption if message.caption else 'нет комментария'}")
+    log_response(datetime.now(), chat_id, message.from_user.first_name,
+                 f"Отправлен документ пользователю {target_user_id}", file_name=document.file_name,
+                 response=f"Комментарий к документу: {message.caption if message.caption else 'нет комментария'}")
 
     # Удаляем локальный файл
-    #os.remove(document.file_name)
+    # os.remove(document.file_name)
     # Очищаем стек обработчиков для текущего чата
     bot.clear_step_handler_by_chat_id(chat_id)
 
+
 @bot.message_handler(content_types=['text'])
 def ask_experience(message):
-    # Сохраняем ответ на вопрос "Выберите источник трафика"
-    #traffic_source = call.data
+    user_id = message.from_user.id
 
-    # Создаем клавиатуру Да/Нет
-    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add(KeyboardButton('Да'))
-    keyboard.add(KeyboardButton('Нет'))
+    # Если пользователь отсутствует в словаре, добавляем его с asked_experience = False
+    if user_id not in user_data:
+        user_data[user_id] = {"ask_experience_done": False}
 
-    # Отправляем вопрос "Был ли у вас опыт в сфере арбитража трафика?" с клавиатурой Да/Нет
-    bot.send_message(message.chat.id, "Был ли у вас опыт в сфере арбитража трафика?", reply_markup=keyboard)
-    bot.register_next_step_handler(message, send_statistics)
-    log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Запрос информации по источникам", message.text)
+    # Если ключ 'ask_experience' отсутствует в словаре пользователя или его значение равно False, выполняем код
+    if not user_data[user_id].get("asked_experience", False):
+        # Создаем клавиатуру Да/Нет
+        keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard.add(KeyboardButton('Да'))
+        keyboard.add(KeyboardButton('Нет'))
+
+        # Отправляем вопрос "Был ли у вас опыт в сфере арбитража трафика?" с клавиатурой Да/Нет
+        bot.send_message(message.chat.id, "Был ли у вас опыт в сфере арбитража трафика?", reply_markup=keyboard)
+
+        log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Запрос информации по источникам",
+                     message.text)
+
+        # Устанавливаем asked_experience в True
+        user_data[user_id]["asked_experience"] = True
+
+        # Устанавливаем asked_experience_done в False для нового сообщения
+        user_data[user_id]['ask_experience_done'] = False
+
+        # Регистрируем следующий обработчик
+        bot.register_next_step_handler(message, send_statistics)
+
 
 @bot.message_handler(content_types=['text'])
 def send_statistics(message):
+    user_id = message.from_user.id
+
+    # Если пользователь отсутствует в словаре, добавляем его
+    if user_id not in user_data:
+        user_data[user_id] = {}
+
+    # Если ключ 'ask_experience_done' присутствует в словаре пользователя и его значение равно True, пропускаем выполнение
+    if user_data[user_id].get("ask_experience_done", False):
+        return
+
     if message.text == "Да":
-        # Отправляем вопрос "Какая у вас почта?" и ждем ответа
+        # Отправляем вопрос "По работе в какой вертикали арбитража трафика имеется статистика?" и ждем ответа
         keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
         keyboard.add(KeyboardButton('Беттинг'))
         keyboard.add(KeyboardButton('Гемблинг'))
         keyboard.add(KeyboardButton('Фин. офферы'))
         keyboard.add(KeyboardButton('Другие'))
 
-        bot.send_message(message.chat.id, "По работе в какой вертикали арбитража трафика имеется статистика?", reply_markup=keyboard)
+        bot.send_message(message.chat.id, "По работе в какой вертикали арбитража трафика имеется статистика?",
+                         reply_markup=keyboard)
         bot.register_next_step_handler(message, prev_payments)
-
-    #    save_to_excel(message)
-        #bot.register_next_step_handler(message, ask_traffic_source)
     elif message.text == "Нет":
         bot.send_message(message.chat.id, "<code>Если ваша заявка пройдет модерацию, с вами свяжется "
                                           "менеджер в течение 1-3 дней в зависимости от загруженности.\n\n"
@@ -237,12 +305,12 @@ def send_statistics(message):
                                           "- нет активных источников на руках: если вы в процессе создания источника, свяжитесь с нами по готовности (ИСКЛЮЧЕНИЕ: ваш источник трафика ASO, и вы планируете делать приложение под БК Лига Ставок. \n"
                                           "Просим быть внимательными и не оставлять вопросы без ответа. Это очень важно при принятии решения! :)</code>",
                          parse_mode='HTML')
-     #   save_to_excel(message)
-        #bot.stop_polling()
-      #bot.stop_bot()
-    # Сохраняем данные пользователя в файл# Сохраняем данные пользователя в файл
 
-    log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Был ли у вас опыт в сфере арбитража трафика?", message.text)
+    # Устанавливаем значение ключа 'ask_experience_done' в True после выполнения функции
+    user_data[user_id]['ask_experience_done'] = True
+
+    log_response(datetime.now(), message.chat.id, message.from_user.first_name,
+                 "Был ли у вас опыт в сфере арбитража трафика?", message.text)
 
 
 @bot.message_handler(content_types=['text'])
@@ -255,8 +323,8 @@ def prev_payments(message):
     if message.text == "Другие":
         remove_keyboard = telebot.types.ReplyKeyboardRemove()
 
-
-        bot.send_message(message.chat.id, "<code>Введите название вертикали, по которой есть статистика:</code>", parse_mode='HTML', reply_markup=remove_keyboard)
+        bot.send_message(message.chat.id, "<code>Введите название вертикали, по которой есть статистика:</code>",
+                         parse_mode='HTML', reply_markup=remove_keyboard)
         bot.register_next_step_handler(message, send_other, keyboard)
         log_response(datetime.now(), message.chat.id, message.from_user.first_name,
                      "По работе в какой вертикали арбитража трафика имеется статистика?", message.text)
@@ -267,45 +335,50 @@ def prev_payments(message):
                      "По работе в какой вертикали арбитража трафика имеется статистика?", message.text)
         bot.register_next_step_handler(message, stat_requester)
 
-    #log_response(datetime.now(), message.chat.id, message.from_user.first_name,
-              #   "По работе в какой вертикали арбитража трафика имеется статистика?", message.text)
+    # log_response(datetime.now(), message.chat.id, message.from_user.first_name,
+    #   "По работе в какой вертикали арбитража трафика имеется статистика?", message.text)
+
 
 def send_other(message, prev_keyboard):
     # Сохраняем ответ на вопрос "Другие"
     other = message.text
     # Отправляем ответ пользователю
-    bot.send_message(message.chat.id,"Вы работали по партнерской программе/по фиксированной оплате?", reply_markup=prev_keyboard)
+    bot.send_message(message.chat.id, "Вы работали по партнерской программе/по фиксированной оплате?",
+                     reply_markup=prev_keyboard)
     log_response(datetime.now(), message.chat.id, message.from_user.first_name,
-                     "Ответ на вопрос 'По работе в какой вертикали арбитража трафика имеется статистика?'", message.text)
+                 "Ответ на вопрос 'По работе в какой вертикали арбитража трафика имеется статистика?'", message.text)
     bot.register_next_step_handler(message, stat_requester)
-
 
 
 @bot.message_handler(content_types=['text'])
 def stat_requester(message):
     remove_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Партнерская программа':
-        bot.send_message(message.chat.id, "<code>Необходимо прислать статистику в формате видео по следующей инструкции:\n"
-                                      " 1. Войдите в ЛК;\n"
-                                      " 2. Перейдите в раздел статистики;\n "
-                                      "3. Продемонстрируйте статистику по конверсиям (ftd, std (rd), сумма депозитов, хиты/хосты, переходы, уники при наличии)\n "
-                                      "за различные месяцы в разрезе каждого отдельно (например, отдельно за ноябрь, за декабрь, за январь); \n"
-                                      "4. Статистика в идеале должна быть свежей.</code>", parse_mode='HTML', reply_markup=remove_keyboard)
+        bot.send_message(message.chat.id,
+                         "<code>Необходимо прислать статистику в формате видео по следующей инструкции:\n"
+                         " 1. Войдите в ЛК;\n"
+                         " 2. Перейдите в раздел статистики;\n "
+                         "3. Продемонстрируйте статистику по конверсиям (ftd, std (rd), сумма депозитов, хиты/хосты, переходы, уники при наличии)\n "
+                         "за различные месяцы в разрезе каждого отдельно (например, отдельно за ноябрь, за декабрь, за январь); \n"
+                         "4. Статистика в идеале должна быть свежей.</code>", parse_mode='HTML',
+                         reply_markup=remove_keyboard)
     elif message.text == 'Фикс. оплата':
         bot.send_message(message.chat.id, "<code>Укажите, с какой компанией работали по данной модели? "
-                                          "Пришлите пример рекламной интеграции в зависимости от вашего источника трафика (скрин из группы, текст поста, ссылка на видео)</code>", parse_mode='HTML' , reply_markup=remove_keyboard)
+                                          "Пришлите пример рекламной интеграции в зависимости от вашего источника трафика (скрин из группы, текст поста, ссылка на видео)</code>",
+                         parse_mode='HTML', reply_markup=remove_keyboard)
 
-
-    log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Вы работали по партнерской программе/по фиксированно оплате?", message.text)
+    log_response(datetime.now(), message.chat.id, message.from_user.first_name,
+                 "Вы работали по партнерской программе/по фиксированно оплате?", message.text)
     bot.register_next_step_handler(message, final_message)
+
 
 @bot.message_handler(content_types=['text'])
 def final_message(message):
-    keyboard = telebot.types.InlineKeyboardMarkup()
+    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
 
     # Добавление кнопок
-    keyboard.add(telebot.types.InlineKeyboardButton("Начать с начала", callback_data="restart"))
-    keyboard.add(telebot.types.InlineKeyboardButton("Отправить ответы", callback_data="send_answers"))
+    keyboard.add(telebot.types.KeyboardButton("Начать с начала"))
+    keyboard.add(telebot.types.KeyboardButton("Отправить ответы"))
 
     bot.send_message(message.chat.id, "<code>Если ваша заявка пройдет модерацию, с вами свяжется "
                                       "менеджер в течение 1-3 дней в зависимости от загруженности.\n\n"
@@ -314,24 +387,29 @@ def final_message(message):
                                       "- нарушение шаблона подачи заявки: какая-то информация из требуемого списка отсутствует;\n "
                                       "- нет активных источников на руках: если вы в процессе создания источника, свяжитесь с нами по готовности (ИСКЛЮЧЕНИЕ: ваш источник трафика ASO, и вы планируете делать приложение под БК Лига Ставок. \n"
                                       "Просим быть внимательными и не оставлять вопросы без ответа. Это очень важно при принятии решения! :)</code>",
-                 parse_mode='HTML', reply_markup=keyboard)
+                     parse_mode='HTML', reply_markup=keyboard)
 
     log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Запрос стат-ки", message.text)
 
-    # Обработка колбеков
-    @bot.callback_query_handler(func=lambda call: call.data == "restart" or call.data == "send_answers")
-    def handle_callback(call):
-        if call.data == "restart":
-            # Перезапускаем бота с начала
-            bot.clear_step_handler_by_chat_id(call.message.chat.id)
-            start(call.message)
-        elif call.data == "send_answers":
-            # Отправка файла с ответами указанному пользователю
-            target_user_id = 62667001  # Замените на ID целевого пользователя
-            with open("user_responses.xlsx", "rb") as file:
-                bot.send_document(chat_id=target_user_id, document=file, caption="Ответы пользователей")
+    # Устанавливаем обработчик нажатий на кнопки
+    bot.register_next_step_handler(message, handle_button_click)
 
 
-keep_alive()#запускаем flask-сервер в отдельном потоке..
+def handle_button_click(message):
+    if message.text == "Начать с начала":
+        # Перезапускаем бота с начала
+        bot.clear_step_handler_by_chat_id(message.chat.id)
+        start(message)
+    elif message.text == "Отправить ответы":
+        # Отправка файла с ответами указанному пользователю
+        target_user_id = 62667001  # Замените на ID целевого пользователя
+        with open("user_responses.xlsx", "rb") as file:
+            bot.send_document(chat_id=target_user_id, document=file, caption="Ответы пользователей")
+            bot.send_message(message.chat.id, "Ответы отправлены, спасибо!")
+            # Удаляем обработчик следующего шага после выполнения
+        bot.clear_step_handler_by_chat_id(message.chat.id)
 
-bot.polling(non_stop=True, interval=0) #запуск бота
+
+keep_alive()  # запускаем flask-сервер в отдельном потоке..
+
+bot.polling(non_stop=True, interval=0)  # запуск бота
