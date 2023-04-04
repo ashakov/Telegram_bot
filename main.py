@@ -72,7 +72,7 @@ def ask_email(message):
         user_data[user_id] = {"asked_email": False}
 
     # Если вопрос уже был задан, пропускаем его
-    if user_data[user_id]["asked_email"]:
+    if user_id in user_data and "asked_email" in user_data[user_id] and user_data[user_id]["asked_email"]:
         return
 
     # Отправляем вопрос "Какая у вас почта?" и ждем ответа
@@ -167,7 +167,7 @@ def forward_video(message):
     target_user_id = 62667001  # замените на ID целевого пользователя
     caption = f"Получено от пользователя {user_id}: {message.caption if message.caption else 'нет комментария'}"
     with open(file_name, 'rb') as video:
-        sent_message = bot.send_video(chat_id=target_user_id, data=video, caption=caption)
+        sent_message = bot.send_video(chat_id=target_user_id, video=video, caption=caption)
 
     # сохраняем комментарии в файл
     log_response(datetime.now(), chat_id, message.from_user.first_name,
@@ -178,7 +178,7 @@ def forward_video(message):
     # os.remove(file_name)
 
     # Очищаем стек обработчиков для текущего чата
-    bot.clear_step_handler_by_chat_id(chat_id)
+    # bot.clear_step_handler_by_chat_id(chat_id)
 
 
 @bot.message_handler(content_types=['photo'])
@@ -212,7 +212,7 @@ def save_image(message):
     # os.remove(file_name)
 
     # Очищаем стек обработчиков для текущего чата
-    bot.clear_step_handler_by_chat_id(chat_id)
+    # bot.clear_step_handler_by_chat_id(chat_id)
 
 
 @bot.message_handler(content_types=['document'])
@@ -239,7 +239,7 @@ def save_document(message):
     # Удаляем локальный файл
     # os.remove(document.file_name)
     # Очищаем стек обработчиков для текущего чата
-    bot.clear_step_handler_by_chat_id(chat_id)
+    # bot.clear_step_handler_by_chat_id(chat_id)
 
 
 @bot.message_handler(content_types=['text'])
