@@ -1,14 +1,14 @@
+#pip.main(['install', 'python-telegram-bot', 'pytelegrambotapi'])
 import os
 from background import keep_alive #импорт функции для поддержки работоспособности
 import pip
-pip.main(['install', 'python-telegram-bot', 'pytelegrambotapi'])
 import telebot
 import telegram
 import time
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import openpyxl
 from telegram import ReplyKeyboardRemove
-
+import io
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
 
 from datetime import datetime
@@ -26,7 +26,7 @@ sheet["B1"] = "User ID"
 sheet["C1"] = "User Name"
 sheet["D1"] = "Question"
 sheet["E1"] = "Response"
-
+sheet["F1"] = "File_name"
 bot = telebot.TeleBot('6100483283:AAGAXER5F5lEn7f_vZaRc0Ofsik_UoPZ8H4')
 #bot.delete_webhook()
 
@@ -112,7 +112,7 @@ def handle_callback_query(call):
         bot.send_message(chat_id, "Укажите источник самостоятельно")
     elif call.data == "no_active":
         bot.send_message(chat_id, "Жаль, что у вас нет активных источников. В данный момент мы не можем с вами сотрудничать.")
-        bot.stop_bot()
+        bot.restart_bot()
 
     log_response(datetime.now(), chat_id, call.from_user.first_name, "Источник трафика", call.data)
     bot.register_next_step_handler(call.message, ask_experience)
@@ -133,41 +133,47 @@ def forward_video(message):
         new_file.write(downloaded_file)
     # пересылаем видео пользователю
     bot.forward_message(62667001, chat_id, message.chat.id, message.message_id)
-    log_response(datetime.now(), chat_id, message.from_user.first_name, "Отправлено видео пользователю", file_name)
+    log_response(datetime.now(), chat_id, message.from_user.first_name, f"Отправлено видео пользователю {62667001}", response=f"Комментарий к видео: {message.caption if message.caption else 'нет комментария'}")
+
+    # Очищаем стек обработчиков для текущего чата
+    bot.clear_step_handler_by_chat_id(chat_id)
 
 
-# Обработчик отправки фото
+
 @bot.message_handler(content_types=['photo'])
 def save_image(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
-    photos = message.photo
+    photo = message.photo[-1]  # получаем только самое большое разрешение фото
 
-    # Обрабатываем каждую фотографию в сообщении
-    for photo in photos:
-        file_id = photo.file_id
-        file_name = f"photo_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
-        file_info = bot.get_file(file_id)
-        downloaded_file = bot.download_file(file_info.file_path)
+    file_id = photo.file_id
+    file_name = f"photo_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
+    file_info = bot.get_file(file_id)
+    downloaded_file = bot.download_file(file_info.file_path)
 
-        # сохраняем файл на сервере
-        with open(file_name, 'wb') as new_file:
-            new_file.write(downloaded_file)
+    # сохраняем файл на сервере
+    with open(file_name, 'wb') as new_file:
+        new_file.write(downloaded_file)
 
-        # отправляем фото другому пользователю
-        target_user_id = 62667001  # замените на ID целевого пользователя
-        caption = f"Получено от пользователя {user_id}"
-        with open(file_name, 'rb') as photo:
-            sent_message = bot.send_photo(chat_id=target_user_id, photo=photo, caption=caption)
+    comment = message.caption if message.caption else ""
 
-        # сохраняем комментарии в файл
-        log_response(datetime.now(), chat_id, message.from_user.first_name, f"Отправлено фото пользователю {target_user_id}", file_name=file_name, response=f"Комментарий к фото: {caption}")
+    # отправляем фото другому пользователю
+    target_user_id = 62667001  # замените на ID целевого пользователя
+    user_name = message.from_user.first_name
+    caption = f"Получено от пользователя {user_name} (ID: {user_id}).\n{comment}"
+    with open(file_name, 'rb') as photo:
+        sent_message = bot.send_photo(chat_id=target_user_id, photo=photo, caption=caption)
 
-        # удаляем локальный файл
-        #os.remove(file_name)
+    # Save the comment to the Excel file
+    log_response(datetime.now(), user_id, message.from_user.first_name, "Photo", file_name, comment)
+
+    # удаляем локальный файл
+    #os.remove(file_name)
+
+    # Очищаем стек обработчиков для текущего чата
+    bot.clear_step_handler_by_chat_id(chat_id)
 
 
-# Обработчик отправки документа
 @bot.message_handler(content_types=['document'])
 def save_document(message):
     document = message.document
@@ -182,16 +188,15 @@ def save_document(message):
 
     # Пересылаем документ другому пользователю
     target_user_id = 62667001  # замените на ID целевого пользователя
-    sent_message = bot.send_document(chat_id=target_user_id, data=downloaded_file, caption=f"Получено от пользователя {user_id}")
+    bot.forward_message(target_user_id, chat_id, message.message_id)
 
-    # сохраняем комментарии в файл
-    log_response(datetime.now(), chat_id, message.from_user.first_name, "Отправлен документ пользователю", file_name=file_name)
+    # Сохраняем комментарии в файл
+    log_response(datetime.now(), chat_id, message.from_user.first_name, f"Отправлен документ пользователю {target_user_id}", file_name=document.file_name, response=f"Комментарий к документу: {message.caption if message.caption else 'нет комментария'}")
 
-    # пересылаем сообщение с документом
-    bot.forward_message(target_user_id, chat_id, sent_message.message_id)
-
-    # удаляем локальный файл
-    #os.remove(file_name)
+    # Удаляем локальный файл
+    #os.remove(document.file_name)
+    # Очищаем стек обработчиков для текущего чата
+    bot.clear_step_handler_by_chat_id(chat_id)
 
 @bot.message_handler(content_types=['text'])
 def ask_experience(message):
@@ -296,17 +301,36 @@ def stat_requester(message):
 
 @bot.message_handler(content_types=['text'])
 def final_message(message):
-    remove_keyboard = telebot.types.ReplyKeyboardRemove()
+    keyboard = telebot.types.InlineKeyboardMarkup()
+
+    # Добавление кнопок
+    keyboard.add(telebot.types.InlineKeyboardButton("Начать с начала", callback_data="restart"))
+    keyboard.add(telebot.types.InlineKeyboardButton("Отправить ответы", callback_data="send_answers"))
+
     bot.send_message(message.chat.id, "<code>Если ваша заявка пройдет модерацию, с вами свяжется "
                                       "менеджер в течение 1-3 дней в зависимости от загруженности.\n\n"
                                       " Если менеджер с вами не связался, ваша заявка не была апрувлена по трем причинам: \n"
                                       "- низкое качество траффика по предоставленным данным; \n"
                                       "- нарушение шаблона подачи заявки: какая-то информация из требуемого списка отсутствует;\n "
                                       "- нет активных источников на руках: если вы в процессе создания источника, свяжитесь с нами по готовности (ИСКЛЮЧЕНИЕ: ваш источник трафика ASO, и вы планируете делать приложение под БК Лига Ставок. \n"
-                                      "Просим быть внимательными и не оставлять вопросы без ответа. Это очень важно при принятии решения! :)</code>", parse_mode='HTML', reply_markup=remove_keyboard)
+                                      "Просим быть внимательными и не оставлять вопросы без ответа. Это очень важно при принятии решения! :)</code>",
+                 parse_mode='HTML', reply_markup=keyboard)
+
     log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Запрос стат-ки", message.text)
-    #bot.stop_polling()
-    #bot.stop_bot()
+
+    # Обработка колбеков
+    @bot.callback_query_handler(func=lambda call: call.data == "restart" or call.data == "send_answers")
+    def handle_callback(call):
+        if call.data == "restart":
+            # Перезапускаем бота с начала
+            bot.clear_step_handler_by_chat_id(call.message.chat.id)
+            start(call.message)
+        elif call.data == "send_answers":
+            # Отправка файла с ответами указанному пользователю
+            target_user_id = 62667001  # Замените на ID целевого пользователя
+            with open("user_responses.xlsx", "rb") as file:
+                bot.send_document(chat_id=target_user_id, document=file, caption="Ответы пользователей")
+
 
 keep_alive()#запускаем flask-сервер в отдельном потоке..
 
