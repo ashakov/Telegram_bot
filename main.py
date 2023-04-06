@@ -120,129 +120,116 @@ def handle_callback_query(call):
 
     # Проверяем, какую кнопку нажал пользователь
     if call.data == 'seo':
-        bot.send_message(chat_id, "- Укажите ссылку на сайт,\n "
+        bot.send_message(chat_id, "<code>- Укажите ссылку на сайт,\n "
                                   "- прикрепите статистику по посещаемости сайта, \n"
-                                  "- опишите, как планируете рекламировать БК «Лига Ставок»: баннер, рейтинг и т.д.")
+                                  "- опишите, как планируете рекламировать БК «Лига Ставок»: баннер, рейтинг и т.д.</code>",
+                         parse_mode='HTML')
     elif call.data == 'aso':
-        bot.send_message(chat_id, "- Укажите ссылку на приложение, место в рейтинге.\n "
+        bot.send_message(chat_id, "<code>- Укажите ссылку на приложение, место в рейтинге.\n "
                                   "- Если планируете делать брендовое приложение - опишите его вид, механику и т.д., \n"
-                                  "- примерно сроки реализации")
+                                  "- примерно сроки реализации</code>", parse_mode='HTML')
     elif call.data == "context ad":
         bot.send_message(chat_id,
-                         "Укажите, по каким ключам планируете запускать рекламу, где? При запуске через ЯД, пришлите статистику из ЛК ЯД")
+                         "<code>Укажите, по каким ключам планируете запускать рекламу, где? При запуске через ЯД, пришлите статистику из ЛК ЯД</code>",
+                         parse_mode='HTML')
     elif call.data == "social":
         bot.send_message(chat_id,
-                         "Укажите, являетесь ли вы владельцем сообщества/ планируете закупать рекламу. Прикрепите ссылки. Если это группа ВК - пришлите статистику по охватам")
+                         "<code>Укажите, являетесь ли вы владельцем сообщества/ планируете закупать рекламу. Прикрепите ссылки. Если это группа ВК - пришлите статистику по охватам </code>",
+                         parse_mode='HTML')
     elif call.data == "streaming":
-        bot.send_message(chat_id, "Укажите ссылки на стримы, прикрепите портфолио с опытом в сфере стрим-индустрии")
+        bot.send_message(chat_id,
+                         "<code>Укажите ссылки на стримы, прикрепите портфолио с опытом в сфере стрим-индустрии</code>",
+                         parse_mode='HTML')
     elif call.data == "youtube":
-        bot.send_message(chat_id, "Укажите ссылку на ютуб канал/каналы, пришлите статистику по охватам")
+        bot.send_message(chat_id, "<code>Укажите ссылку на ютуб канал/каналы, пришлите статистику по охватам</code>",
+                         parse_mode='HTML')
     elif call.data == "others":
-        bot.send_message(chat_id, "Укажите источник самостоятельно")
+        bot.send_message(chat_id, "<code>Укажите источник самостоятельно</code>", parse_mode='HTML')
     elif call.data == "no_active":
         bot.send_message(chat_id,
-                         "Жаль, что у вас нет активных источников. В данный момент мы не можем с вами сотрудничать.")
+                         "<code>Жаль, что у вас нет активных источников. В данный момент мы не можем с вами сотрудничать.</code>",
+                         parse_mode='HTML')
         bot.restart_bot()
 
     log_response(datetime.now(), chat_id, call.from_user.first_name, "Источник трафика", call.data)
     bot.register_next_step_handler(call.message, ask_experience)
 
 
-@bot.message_handler(content_types=['video'])
-def forward_video(message):
+@bot.message_handler(content_types=['text', 'photo', 'video', 'document'])
+def handle_messages(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
-    video = message.video
 
-    video_id = video.file_id
-    file_name = f"video_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.mp4"
-    file_info = bot.get_file(video_id)
-    downloaded_file = bot.download_file(file_info.file_path)
+    if message.content_type == 'video':
+        video = message.video
+        video_id = video.file_id
+        file_name = f"video_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.mp4"
+        file_info = bot.get_file(video_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        bot.send_message(message.chat.id, "<code>Видео отправлено.</code>", parse_mode='HTML')
+        # сохраняем файл на сервере
+        with open(file_name, 'wb') as new_file:
+            new_file.write(downloaded_file)
 
-    # сохраняем файл на сервере
-    with open(file_name, 'wb') as new_file:
-        new_file.write(downloaded_file)
+        # отправляем видео другому пользователю
+        target_user_id = 62667001  # замените на ID целевого пользователя
+        caption = f"Получено от пользователя {user_id}: {message.caption if message.caption else 'нет комментария'}"
+        with open(file_name, 'rb') as video:
+            sent_message = bot.send_video(chat_id=target_user_id, video=video, caption=caption)
 
-    # отправляем видео другому пользователю
-    target_user_id = 62667001  # замените на ID целевого пользователя
-    caption = f"Получено от пользователя {user_id}: {message.caption if message.caption else 'нет комментария'}"
-    with open(file_name, 'rb') as video:
-        sent_message = bot.send_video(chat_id=target_user_id, video=video, caption=caption)
+        # сохраняем комментарии в файл
+        log_response(datetime.now(), chat_id, message.from_user.first_name,
+                     f"Отправлено видео пользователю {target_user_id}", file_name=file_name,
+                     response=f"Комментарий к видео: {caption}")
 
-    # сохраняем комментарии в файл
-    log_response(datetime.now(), chat_id, message.from_user.first_name,
-                 f"Отправлено видео пользователю {target_user_id}", file_name=file_name,
-                 response=f"Комментарий к видео: {caption}")
+    elif message.content_type == 'photo':
+        photo = message.photo[-1]  # получаем только самое большое разрешение фото
+        file_id = photo.file_id
+        file_name = f"photo_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
+        file_info = bot.get_file(file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        bot.send_message(message.chat.id, "<code>Фото отправлено.</code>", parse_mode='HTML')
+        # сохраняем файл на сервере
+        with open(file_name, 'wb') as new_file:
+            new_file.write(downloaded_file)
 
-    # удаляем локальный файл
-    # os.remove(file_name)
+        comment = message.caption if message.caption else ""
 
-    # Очищаем стек обработчиков для текущего чата
-    # bot.clear_step_handler_by_chat_id(chat_id)
+        # отправляем фото другому пользователю
+        target_user_id = 62667001  # замените на ID целевого пользователя
+        user_name = message.from_user.first_name
+        caption = f"Получено от пользователя {user_name} (ID: {user_id}).\n{comment}"
+        with open(file_name, 'rb') as photo:
+            sent_message = bot.send_photo(chat_id=target_user_id, photo=photo, caption=caption)
 
+    elif message.content_type == 'document':
+        document = message.document
+        document_id = document.file_id
+        document_extension = os.path.splitext(document.file_name)[1]
+        file_name = f"document_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}{document_extension}"
+        file_info = bot.get_file(document_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        bot.send_message(message.chat.id, "<code>Документ отправлен.</code>", parse_mode='HTML')
+        # сохраняем файл на сервере
+        with open(file_name, 'wb') as new_file:
+            new_file.write(downloaded_file)
 
-@bot.message_handler(content_types=['photo'])
-def save_image(message):
-    user_id = message.from_user.id
-    chat_id = message.chat.id
-    photo = message.photo[-1]  # получаем только самое большое разрешение фото
+        comment = message.caption if message.caption else ""
 
-    file_id = photo.file_id
-    file_name = f"photo_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
-    file_info = bot.get_file(file_id)
-    downloaded_file = bot.download_file(file_info.file_path)
+        # отправляем документ другому пользователю
+        target_user_id = 62667001  # замените на ID целевого пользователя
+        user_name = message.from_user.first_name
+        caption = f"Получено от пользователя {user_name} (ID: {user_id}).\n{comment}"
+        with open(file_name, 'rb') as document:
+            sent_message = bot.send_document(chat_id=target_user_id, document=document, caption=caption)
 
-    # сохраняем файл на сервере
-    with open(file_name, 'wb') as new_file:
-        new_file.write(downloaded_file)
+        # Save the comment to the Excel file
+        log_response(datetime.now(), user_id, message.from_user.first_name, "Document", file_name, comment)
 
-    comment = message.caption if message.caption else ""
-
-    # отправляем фото другому пользователю
-    target_user_id = 62667001  # замените на ID целевого пользователя
-    user_name = message.from_user.first_name
-    caption = f"Получено от пользователя {user_name} (ID: {user_id}).\n{comment}"
-    with open(file_name, 'rb') as photo:
-        sent_message = bot.send_photo(chat_id=target_user_id, photo=photo, caption=caption)
-
-    # Save the comment to the Excel file
-    log_response(datetime.now(), user_id, message.from_user.first_name, "Photo", file_name, comment)
-
-    # удаляем локальный файл
-    # os.remove(file_name)
-
-    # Очищаем стек обработчиков для текущего чата
-    # bot.clear_step_handler_by_chat_id(chat_id)
-
-
-@bot.message_handler(content_types=['document'])
-def save_document(message):
-    document = message.document
-    file_info = bot.get_file(document.file_id)
-    downloaded_file = bot.download_file(file_info.file_path)
-    chat_id = message.chat.id
-    user_id = message.from_user.id
-    # сохраняем файл на сервере
-    file_name = document.file_name
-    with open(file_name, 'wb') as new_file:
-        new_file.write(downloaded_file)
-
-    # Пересылаем документ другому пользователю
-    target_user_id = 62667001  # замените на ID целевого пользователя
-    bot.forward_message(target_user_id, chat_id, message.message_id)
-
-    # Сохраняем комментарии в файл
-    log_response(datetime.now(), chat_id, message.from_user.first_name,
-                 f"Отправлен документ пользователю {target_user_id}", file_name=document.file_name,
-                 response=f"Комментарий к документу: {message.caption if message.caption else 'нет комментария'}")
-
-    # Удаляем локальный файл
-    # os.remove(document.file_name)
-    # Очищаем стек обработчиков для текущего чата
-    # bot.clear_step_handler_by_chat_id(chat_id)
+    bot.register_callback_query_handler(message, ask_experience)
 
 
-@bot.message_handler(content_types=['text'])
+@bot.message_handler(content_types=['text', 'video', 'document', 'photo'])
 def ask_experience(message):
     user_id = message.from_user.id
 
@@ -258,7 +245,8 @@ def ask_experience(message):
         keyboard.add(KeyboardButton('Нет'))
 
         # Отправляем вопрос "Был ли у вас опыт в сфере арбитража трафика?" с клавиатурой Да/Нет
-        bot.send_message(message.chat.id, "Был ли у вас опыт в сфере арбитража трафика?", reply_markup=keyboard)
+        bot.send_message(message.chat.id, "<code>Был ли у вас опыт в сфере арбитража трафика?</code>",
+                         parse_mode='HTML', reply_markup=keyboard)
 
         log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Запрос информации по источникам",
                      message.text)
@@ -293,8 +281,9 @@ def send_statistics(message):
         keyboard.add(KeyboardButton('Фин. офферы'))
         keyboard.add(KeyboardButton('Другие'))
 
-        bot.send_message(message.chat.id, "По работе в какой вертикали арбитража трафика имеется статистика?",
-                         reply_markup=keyboard)
+        bot.send_message(message.chat.id,
+                         "<code>По работе в какой вертикали арбитража трафика имеется статистика?</code>",
+                         parse_mode='HTML', reply_markup=keyboard)
         bot.register_next_step_handler(message, prev_payments)
     elif message.text == "Нет":
         bot.send_message(message.chat.id, "<code>Если ваша заявка пройдет модерацию, с вами свяжется "
@@ -329,7 +318,8 @@ def prev_payments(message):
         log_response(datetime.now(), message.chat.id, message.from_user.first_name,
                      "По работе в какой вертикали арбитража трафика имеется статистика?", message.text)
     else:
-        bot.send_message(message.chat.id, "Вы работали по партнерской программе/по фиксированной оплате?",
+        bot.send_message(message.chat.id, "<code>Вы работали по партнерской программе/по фиксированной оплате?</code>",
+                         parse_mode='HTML',
                          reply_markup=keyboard)
         log_response(datetime.now(), message.chat.id, message.from_user.first_name,
                      "По работе в какой вертикали арбитража трафика имеется статистика?", message.text)
@@ -343,8 +333,8 @@ def send_other(message, prev_keyboard):
     # Сохраняем ответ на вопрос "Другие"
     other = message.text
     # Отправляем ответ пользователю
-    bot.send_message(message.chat.id, "Вы работали по партнерской программе/по фиксированной оплате?",
-                     reply_markup=prev_keyboard)
+    bot.send_message(message.chat.id, "<code>Вы работали по партнерской программе/по фиксированной оплате?</code>",
+                     parse_mode='HTML', reply_markup=prev_keyboard)
     log_response(datetime.now(), message.chat.id, message.from_user.first_name,
                  "Ответ на вопрос 'По работе в какой вертикали арбитража трафика имеется статистика?'", message.text)
     bot.register_next_step_handler(message, stat_requester)
@@ -355,7 +345,7 @@ def stat_requester(message):
     remove_keyboard = telebot.types.ReplyKeyboardRemove()
     if message.text == 'Партнерская программа':
         bot.send_message(message.chat.id,
-                         "<code>Необходимо прислать статистику в формате видео по следующей инструкции:\n"
+                         "<code> Необходимо прислать статистику в формате видео по следующей инструкции:\n"
                          " 1. Войдите в ЛК;\n"
                          " 2. Перейдите в раздел статистики;\n "
                          "3. Продемонстрируйте статистику по конверсиям (ftd, std (rd), сумма депозитов, хиты/хосты, переходы, уники при наличии)\n "
@@ -372,7 +362,7 @@ def stat_requester(message):
     bot.register_next_step_handler(message, final_message)
 
 
-@bot.message_handler(content_types=['text'])
+@bot.message_handler(content_types=['text', 'video', 'document', 'photo'])
 def final_message(message):
     keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
 
@@ -380,7 +370,7 @@ def final_message(message):
     keyboard.add(telebot.types.KeyboardButton("Начать с начала"))
     keyboard.add(telebot.types.KeyboardButton("Отправить ответы"))
 
-    bot.send_message(message.chat.id, "<code>Если ваша заявка пройдет модерацию, с вами свяжется "
+    bot.send_message(message.chat.id, "<code> Если ваша заявка пройдет модерацию, с вами свяжется "
                                       "менеджер в течение 1-3 дней в зависимости от загруженности.\n\n"
                                       " Если менеджер с вами не связался, ваша заявка не была апрувлена по трем причинам: \n"
                                       "- низкое качество траффика по предоставленным данным; \n"
