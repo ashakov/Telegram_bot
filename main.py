@@ -187,20 +187,20 @@ def handle_callback_query(call):
 def handle_messages(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
-
+    target_user_id = 475132584  # 62667001
     if message.content_type == 'video':
         video = message.video
         video_id = video.file_id
         file_name = f"video_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.mp4"
         file_info = bot.get_file(video_id)
         downloaded_file = bot.download_file(file_info.file_path)
-        bot.send_message(message.chat.id, "<code>Видео отправлено.</code>", parse_mode='HTML')
+        bot.send_message(message.chat.id, "Видео отправлено.")
         # сохраняем файл на сервере
         with open(file_name, 'wb') as new_file:
             new_file.write(downloaded_file)
 
         # отправляем видео другому пользователю
-        target_user_id = 62667001  # замените на ID целевого пользователя
+        # target_user_id = 62667001  # замените на ID целевого пользователя
         caption = f"Получено от пользователя {user_id}: {message.caption if message.caption else 'нет комментария'}"
         with open(file_name, 'rb') as video:
             sent_message = bot.send_video(chat_id=target_user_id, video=video, caption=caption)
@@ -216,7 +216,7 @@ def handle_messages(message):
         file_name = f"photo_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}.jpg"
         file_info = bot.get_file(file_id)
         downloaded_file = bot.download_file(file_info.file_path)
-        bot.send_message(message.chat.id, "<code>Фото отправлено.</code>", parse_mode='HTML')
+        bot.send_message(message.chat.id, "Фото отправлено.")
         # сохраняем файл на сервере
         with open(file_name, 'wb') as new_file:
             new_file.write(downloaded_file)
@@ -224,7 +224,7 @@ def handle_messages(message):
         comment = message.caption if message.caption else ""
 
         # отправляем фото другому пользователю
-        target_user_id = 62667001  # замените на ID целевого пользователя
+        # target_user_id = 62667001  # замените на ID целевого пользователя
         user_name = message.from_user.first_name
         caption = f"Получено от пользователя {user_name} (ID: {user_id}).\n{comment}"
         with open(file_name, 'rb') as photo:
@@ -237,7 +237,7 @@ def handle_messages(message):
         file_name = f"document_{user_id}_{datetime.now().strftime('%Y%m%d%H%M%S')}{document_extension}"
         file_info = bot.get_file(document_id)
         downloaded_file = bot.download_file(file_info.file_path)
-        bot.send_message(message.chat.id, "<code>Документ отправлен.</code>", parse_mode='HTML')
+        bot.send_message(message.chat.id, "Документ отправлен.")
         # сохраняем файл на сервере
         with open(file_name, 'wb') as new_file:
             new_file.write(downloaded_file)
@@ -245,7 +245,7 @@ def handle_messages(message):
         comment = message.caption if message.caption else ""
 
         # отправляем документ другому пользователю
-        target_user_id = 62667001  # замените на ID целевого пользователя
+        # target_user_id = 62667001  # замените на ID целевого пользователя
         user_name = message.from_user.first_name
         caption = f"Получено от пользователя {user_name} (ID: {user_id}).\n{comment}"
         with open(file_name, 'rb') as document:
@@ -422,7 +422,7 @@ def handle_button_click(message):
         start(message)
     elif message.text == "Отправить ответы и приступить к отправке файлов":
         # Отправка файла с ответами указанному пользователю
-        target_user_id = 62667001  # Замените на ID целевого пользователя
+        target_user_id = 475132584  # 62667001  # Замените на ID целевого пользователя
         with open("user_responses.xlsx", "rb") as file:
             bot.send_document(chat_id=target_user_id, document=file, caption="Ответы пользователей")
             bot.send_message(message.chat.id, "Ответы отправлены, спасибо! Не забудьте отправить вложения.")
