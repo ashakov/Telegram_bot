@@ -92,7 +92,7 @@ def ask_traffic_source(message):
     keyboard.add(InlineKeyboardButton("ASO", callback_data="aso"))
     keyboard.add(InlineKeyboardButton("Контекстная реклама", callback_data="context ad"))
     keyboard.add(InlineKeyboardButton("Социальные сети", callback_data="social"))
-    keyboard.add(InlineKeyboardButton("Стримминг", callback_data="streaming"))
+    keyboard.add(InlineKeyboardButton("Стриминг", callback_data="streaming"))
     keyboard.add(InlineKeyboardButton("Youtube трафик", callback_data="youtube"))
     keyboard.add(InlineKeyboardButton("Другое", callback_data="others"))
     keyboard.add(InlineKeyboardButton("Нет активных источников", callback_data="no_active"))
@@ -100,11 +100,11 @@ def ask_traffic_source(message):
     # Отправляем вопрос "Выберите источник трафика" с клавиатурой
     bot.send_message(message.chat.id,
                      "Укажите источники трафика, с которыми планируете работать. Также, информируем вас о ряде запрещенных источников, которые не сможем согласовать:\n "
-                     "- трафик с порнографических сайтов,\n"
-                     "- контекстная реклама с указанием бренда Рекламодателя,\n"
-                     "- мотивированный трафик,\n"
-                     "- спам-рассылка в личных сообщениях в аккаунтах социальных сетей,\n "
-                     "- трафик из Фейсбук, Инстаграм, Тик Ток.", reply_markup=keyboard, parse_mode='HTML')
+                     "<b>- трафик с порнографических сайтов,</b>\n"
+                     "<b>- контекстная реклама с указанием бренда Рекламодателя,</b>\n"
+                     "<b>- мотивированный трафик,</b>\n"
+                     "<b>- спам-рассылка в личных сообщениях в аккаунтах социальных сетей,</b>\n "
+                     "<b>- трафик из Фейсбук, Инстаграм, Тик Ток.</b>", reply_markup=keyboard, parse_mode='HTML')
     log_response(datetime.now(), message.chat.id, message.from_user.first_name,
                  "Укажите почту, на которую вы регистрировались", message.text)
     bot.register_callback_query_handler(message, handle_callback_query)
@@ -148,7 +148,7 @@ def handle_callback_query(call):
     elif call.data == "social":
         bot.send_message(chat_id, "- Укажите, являетесь ли вы владельцем сообщества/ планируете закупать рекламу. \n"
                                   "- Прикрепите ссылки на источники. <b>Если это группа в ВК - пришлите статистику по ее охватам;</b>\n"
-                                  "- Прикрепите подтверждение того, что владеете каналом/группой(формат - видео/фото).\n"
+                                  "- Прикрепите подтверждение того, что владеете каналом/группой(формат - видео/фото).\n\n"
 
                                   "НА ДАННОМ ЭТАПЕ ФАЙЛЫ ПРИКРЕПЛЯТЬ НЕ НУЖНО. В самом конце после ответа на вопросы у вас будет возможность прикрепить все необходимые видео/фото материалы.",
                          parse_mode='HTML')
@@ -157,7 +157,7 @@ def handle_callback_query(call):
                                   "- Прикрепите портфолио с опытом в сфере стрим-индустрии, если проводите стримы самостоятельно (формат - текстовый файл);\n"
                                   "- Укажите, на каких платформах планируете проводить эфиры и формат размещения БК “Лига Ставок”;\n"
                                   "- Если вы планируете закупать рекламу у стримеров, также укажите ссылки на их стримы, по возможности портфолио (формат - текстовый файл), формат размещения БК “Лига Ставок”. \n\n "
-
+                                  "НА ДАННОМ ЭТАПЕ ФАЙЛЫ ПРИКРЕПЛЯТЬ НЕ НУЖНО. В самом конце после ответа на вопросы у вас будет возможность прикрепить все необходимые видео/фото материалы."
                          , parse_mode='HTML')
     elif call.data == "youtube":
         bot.send_message(chat_id, "-Укажите ссылку/и на YouTube канал/ы;\n"
@@ -188,7 +188,7 @@ def handle_callback_query(call):
 def handle_messages(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
-    target_user_id = 475132584  # 62667001
+    target_user_id = 5319468429  # 62667001 475132584
     if message.content_type == 'video':
         video = message.video
         video_id = video.file_id
@@ -375,7 +375,7 @@ def stat_requester(message):
     keyboard.add(KeyboardButton('Согласен'))
     if message.text == 'Партнерская программа':
         bot.send_message(message.chat.id,
-                         "В конце опроса после отправки ответов, необходимо прислать статистику в формате видео по следующей инструкции:\n"
+                         "В конце опроса после отправки ответов необходимо прислать статистику в формате видео по следующей инструкции:\n"
                          " 1. Войдите в ЛК;\n"
                          " 2. Перейдите в раздел статистики;\n "
                          "3. Продемонстрируйте статистику по конверсиям (ftd, std (rd), сумма депозитов, хиты/хосты, переходы, уники при наличии)\n "
@@ -423,7 +423,7 @@ def handle_button_click(message):
         start(message)
     elif message.text == "Отправить ответы и приступить к отправке файлов":
         # Отправка файла с ответами указанному пользователю
-        target_user_id = 475132584  # 62667001  # Замените на ID целевого пользователя
+        target_user_id = 5319468429  # 62667001 475132584, # Замените на ID целевого пользователя
         with open("user_responses.xlsx", "rb") as file:
             bot.send_document(chat_id=target_user_id, document=file, caption="Ответы пользователей")
             bot.send_message(message.chat.id, "Ответы отправлены, спасибо! Не забудьте отправить вложения.")
