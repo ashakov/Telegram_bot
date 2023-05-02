@@ -25,7 +25,8 @@ sheet["D1"] = "Question"
 sheet["E1"] = "Response"
 sheet["F1"] = "File_name"
 bot = telebot.TeleBot('6100483283:AAGAXER5F5lEn7f_vZaRc0Ofsik_UoPZ8H4')
-
+#Пользователь, корому будут отправляться ответы и файлы:
+target_user_id = 5319468429 # 62667001
 
 # bot.delete_webhook()
 
@@ -86,16 +87,19 @@ def ask_email(message):
 
 
 def ask_traffic_source(message):
+    user_id = message.from_user.id
     # Создаем клавиатуру с вариантами ответов
-    keyboard = InlineKeyboardMarkup()
-    keyboard.add(InlineKeyboardButton("SEO", callback_data="seo"))
-    keyboard.add(InlineKeyboardButton("ASO", callback_data="aso"))
-    keyboard.add(InlineKeyboardButton("Контекстная реклама", callback_data="context ad"))
-    keyboard.add(InlineKeyboardButton("Социальные сети", callback_data="social"))
-    keyboard.add(InlineKeyboardButton("Стриминг", callback_data="streaming"))
-    keyboard.add(InlineKeyboardButton("Youtube трафик", callback_data="youtube"))
-    keyboard.add(InlineKeyboardButton("Другое", callback_data="others"))
-    keyboard.add(InlineKeyboardButton("Нет активных источников", callback_data="no_active"))
+
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+
+    keyboard.add(KeyboardButton("SEO"))
+    keyboard.add(KeyboardButton("ASO"))
+    keyboard.add(KeyboardButton("Контекстная реклама"))
+    keyboard.add(KeyboardButton("Социальные сети"))
+    keyboard.add(KeyboardButton("Стриминг"))
+    keyboard.add(KeyboardButton("Youtube трафик"))
+    keyboard.add(KeyboardButton("Другое"))
+    keyboard.add(KeyboardButton("Нет активных источников"))
 
     # Отправляем вопрос "Выберите источник трафика" с клавиатурой
     bot.send_message(message.chat.id,
@@ -112,14 +116,16 @@ def ask_traffic_source(message):
     # Ответы кнопок:
 
 
-@bot.callback_query_handler(func=lambda call: True)
-def handle_callback_query(call):
-    # Получаем ID чата, из которого пришел запрос
-    chat_id = call.message.chat.id if call.message else call.chat.id
-    message_id = call.message.id if call.message else call.message_id
+@bot.message_handler(content_types=['text'])
+def handle_callback_query(message):
 
+    # Получаем ID чата, из которого пришел запрос
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+    remove_keyboard = telebot.types.ReplyKeyboardRemove()
     # Проверяем, какую кнопку нажал пользователь
-    if call.data == 'seo':
+    if message.text == 'SEO':
+
         bot.send_message(chat_id, " - Укажите ссылку на сайт;\n "
                                   "<b> - Прикрепите статистику по посещаемости сайта;</b>\n"
                                   "- Опишите, как планируете рекламировать БК «Лига Ставок»: баннер, рейтинг и т.д.\n"
@@ -129,66 +135,82 @@ def handle_callback_query(call):
                                   "НА ДАННОМ ЭТАПЕ ФАЙЛЫ ПРИКРЕПЛЯТЬ НЕ НУЖНО. В самом конце после ответа на вопросы у вас будет возможность прикрепить все необходимые видео/фото материалы.\n\n"
 
                                   " *Для данного источника трафика может потребоваться дополнительная проверка после прохождения модерации.",
-                         parse_mode='HTML')
-    elif call.data == 'aso':
+                         parse_mode='HTML', reply_markup=remove_keyboard)
+    elif message.text == 'ASO':
+
         bot.send_message(chat_id, "- Укажите ссылку на приложение, место в рейтинге; \n"
                                   "- Если планируете делать брендовое приложение - опишите его вид, механику и т.д., примерные сроки реализации;\n"
                                   "- Прикрепите видео из кабинета разработчика (если данный пункт неосуществим, указать причину, но отсутствие статистики может негативно сказаться на результатах модерации)(в конце опроса);\n\n"
 
                                   "НА ДАННОМ ЭТАПЕ ФАЙЛЫ ПРИКРЕПЛЯТЬ НЕ НУЖНО. В самом конце после ответа на вопросы у вас будет возможность прикрепить все необходимые видео/фото материалы.",
-                         parse_mode='HTML')
-    elif call.data == "context ad":
+                         parse_mode='HTML', reply_markup=remove_keyboard)
+    elif message.text == "Контекстная реклама":
+
         bot.send_message(chat_id, "- Укажите, по каким ключам планируете запускать рекламу, где? \n"
                                   "<b>- При запуске через ЯД прикрепите статистику из ЛК ЯД.</b>\n\n"
 
                                   "НА ДАННОМ ЭТАПЕ ФАЙЛЫ ПРИКРЕПЛЯТЬ НЕ НУЖНО. В самом конце после ответа на вопросы у вас будет возможность прикрепить все необходимые видео/фото материалы.\n\n"
 
                                   "*Для данного источника трафика может потребоваться дополнительная проверка после прохождения модерации.",
-                         parse_mode='HTML')
-    elif call.data == "social":
+                         parse_mode='HTML', reply_markup=remove_keyboard)
+    elif message.text == "Социальные сети":
+
         bot.send_message(chat_id, "- Укажите, являетесь ли вы владельцем сообщества/ планируете закупать рекламу. \n"
                                   "- Прикрепите ссылки на источники. <b>Если это группа в ВК - пришлите статистику по ее охватам;</b>\n"
                                   "- Прикрепите подтверждение того, что владеете каналом/группой(формат - видео/фото).\n\n"
 
                                   "НА ДАННОМ ЭТАПЕ ФАЙЛЫ ПРИКРЕПЛЯТЬ НЕ НУЖНО. В самом конце после ответа на вопросы у вас будет возможность прикрепить все необходимые видео/фото материалы.",
-                         parse_mode='HTML')
-    elif call.data == "streaming":
+                         parse_mode='HTML', reply_markup=remove_keyboard)
+    elif message.text == "Стриминг":
+
         bot.send_message(chat_id, "- Укажите ссылки на стримы,\n "
                                   "- Прикрепите портфолио с опытом в сфере стрим-индустрии, если проводите стримы самостоятельно (формат - текстовый файл);\n"
                                   "- Укажите, на каких платформах планируете проводить эфиры и формат размещения БК “Лига Ставок”;\n"
                                   "- Если вы планируете закупать рекламу у стримеров, также укажите ссылки на их стримы, по возможности портфолио (формат - текстовый файл), формат размещения БК “Лига Ставок”. \n\n "
                                   "НА ДАННОМ ЭТАПЕ ФАЙЛЫ ПРИКРЕПЛЯТЬ НЕ НУЖНО. В самом конце после ответа на вопросы у вас будет возможность прикрепить все необходимые видео/фото материалы."
-                         , parse_mode='HTML')
-    elif call.data == "youtube":
+                         , parse_mode='HTML', reply_markup=remove_keyboard)
+    elif message.text == "Youtube трафик":
+
         bot.send_message(chat_id, "-Укажите ссылку/и на YouTube канал/ы;\n"
                                   "<b>- Прикрепите статистику по охватам канала/ов;</b>\n"
                                   " - Укажите, планируете ли вы закуп рекламы на данной платформе или канал принадлежит вам;\n"
                                   "- Если источник/и ваш/и- прикрепите подтверждение.(формат - видео/фото).\n"
 
                                   "НА ДАННОМ ЭТАПЕ ФАЙЛЫ ПРИКРЕПЛЯТЬ НЕ НУЖНО. В самом конце после ответа на вопросы у вас будет возможность прикрепить все необходимые видео/фото материалы.",
-                         parse_mode='HTML')
-    elif call.data == "others":
-        bot.send_message(chat_id, "Укажите источник самостоятельно")
-    elif call.data == "no_active":
-        bot.send_message(chat_id, " Если ваша заявка пройдет модерацию, с вами свяжется "
-                                  "менеджер в течение 1-3 дней в зависимости от загруженности.\n\n"
-                                  " Если менеджер с вами не связался, ваша заявка не была апрувлена по трем причинам: \n"
-                                  "- низкое качество траффика по предоставленным данным; \n"
-                                  "- нарушение шаблона подачи заявки: какая-то информация из требуемого списка отсутствует;\n "
-                                  "- нет активных источников на руках: если вы в процессе создания источника, свяжитесь с нами по готовности (ИСКЛЮЧЕНИЕ: ваш источник трафика ASO, и вы планируете делать приложение под БК Лига Ставок. \n\n"
-                                  "Просим быть внимательными и не оставлять вопросы без ответа. Это очень важно при принятии решения! :)",
-                         parse_mode='HTML')
-        bot.clear_step_handler_by_chat_id(chat_id)
+                         parse_mode='HTML', reply_markup=remove_keyboard)
+    elif message.text == "Другое":
 
-    log_response(datetime.now(), chat_id, call.from_user.first_name, "Источник трафика", call.data)
-    bot.register_next_step_handler(call.message, ask_experience)
+        bot.send_message(chat_id, "Укажите источник самостоятельно")
+    elif message.text == "Нет активных источников":
+
+        bot.send_message(chat_id, "Спасибо, ваш ответ записан. Если ваша заявка пройдет модерацию, "
+                                      " с вами свяжется менеджер в течение 1-3 дней в зависимости от загруженности.\n\n"
+
+                                      " Если менеджер с вами не связался, ваша заявка не была апрувлена по трем причинам: \n"
+                                      "- низкое качество траффика по предоставленным данным; \n"
+                                      "- нарушение шаблона подачи заявки: какая-то информация из требуемого списка отсутствует;\n "
+                                      "- нет активных источников на руках: если вы в процессе создания источника, свяжитесь с нами по готовности (ИСКЛЮЧЕНИЕ: ваш источник трафика ASO, и вы планируете делать приложение под БК Лига Ставок. \n\n"
+
+                                      "Просим быть внимательными и не оставлять вопросы без ответа. Это очень важно при принятии решения! :)",
+                         parse_mode='HTML', reply_markup=remove_keyboard)
+        #target_user_id = 62667001  # 5319468429  # 62667001 475132584, # Замените на ID целевого пользователя
+        with open("user_responses.xlsx", "rb") as file:
+            bot.send_document(chat_id=target_user_id, document=file, caption="Ответы пользователей")
+            bot.send_message(message.chat.id, "Ответы сохраненны, спасибо!")
+            # Удаляем обработчик следующего шага после выполнения
+        bot.clear_step_handler_by_chat_id(message.chat.id)
+        start(message)
+
+    log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Источник трафика",
+                     message.text)
+    bot.register_next_step_handler(message, ask_experience)
 
 
 @bot.message_handler(content_types=['text', 'photo', 'video', 'document'])
 def handle_messages(message):
     user_id = message.from_user.id
     chat_id = message.chat.id
-    target_user_id = 5319468429  # 62667001 475132584
+    #target_user_id =  62667001 #  5319468429
     if message.content_type == 'video':
         video = message.video
         video_id = video.file_id
@@ -269,7 +291,7 @@ def ask_experience(message):
     # Если ключ 'ask_experience' отсутствует в словаре пользователя или его значение равно False, выполняем код
     if not user_data[user_id].get("asked_experience", False):
         # Создаем клавиатуру Да/Нет
-        keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         keyboard.add(KeyboardButton('Да'))
         keyboard.add(KeyboardButton('Нет'))
 
@@ -304,7 +326,7 @@ def send_statistics(message):
 
     if message.text == "Да":
         # Отправляем вопрос "По работе в какой вертикали арбитража трафика имеется статистика?" и ждем ответа
-        keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+        keyboard = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
         keyboard.add(KeyboardButton('Беттинг'))
         keyboard.add(KeyboardButton('Гемблинг'))
         keyboard.add(KeyboardButton('Фин. офферы'))
@@ -314,15 +336,19 @@ def send_statistics(message):
                          reply_markup=keyboard)
         bot.register_next_step_handler(message, prev_payments)
     elif message.text == "Нет":
-        bot.send_message(message.chat.id, "Если ваша заявка пройдет модерацию, с вами свяжется "
-                                          "менеджер в течение 1-3 дней в зависимости от загруженности.\n\n"
-                                          " Если менеджер с вами не связался, ваша заявка не была апрувлена по трем причинам: \n"
-                                          "- низкое качество траффика по предоставленным данным; \n"
-                                          "- нарушение шаблона подачи заявки: какая-то информация из требуемого списка отсутствует;\n "
-                                          "- нет активных источников на руках: если вы в процессе создания источника, свяжитесь с нами по готовности (ИСКЛЮЧЕНИЕ: ваш источник трафика ASO, и вы планируете делать приложение под БК Лига Ставок. \n"
-                                          "Просим быть внимательными и не оставлять вопросы без ответа. Это очень важно при принятии решения! :)",
-                         parse_mode='HTML')
+        bot.send_message(message.chat.id, "Спасибо, ваш ответ записан. Если ваша заявка пройдет модерацию, "
+                                      " с вами свяжется менеджер в течение 1-3 дней в зависимости от загруженности.\n\n"
 
+                                      " Если менеджер с вами не связался, ваша заявка не была апрувлена по трем причинам: \n"
+                                      "- низкое качество траффика по предоставленным данным; \n"
+                                      "- нарушение шаблона подачи заявки: какая-то информация из требуемого списка отсутствует;\n "
+                                      "- нет активных источников на руках: если вы в процессе создания источника, свяжитесь с нами по готовности (ИСКЛЮЧЕНИЕ: ваш источник трафика ASO, и вы планируете делать приложение под БК Лига Ставок. \n\n"
+
+                                      "Просим быть внимательными и не оставлять вопросы без ответа. Это очень важно при принятии решения! :)",
+                         parse_mode='HTML')
+        with open("user_responses.xlsx", "rb") as file:
+            bot.send_document(chat_id=target_user_id, document=file, caption="Ответы пользователей")
+            #bot.send_message(message.chat.id, "Ответы сохраненны, спасибо!")
     # Устанавливаем значение ключа 'ask_experience_done' в True после выполнения функции
     user_data[user_id]['ask_experience_done'] = True
 
@@ -333,7 +359,7 @@ def send_statistics(message):
 @bot.message_handler(content_types=['text'])
 def prev_payments(message):
     # Создаем клавиатуру
-    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     keyboard.add(KeyboardButton('Партнерская программа'))
     keyboard.add(KeyboardButton('Фикс. оплата'))
 
@@ -371,7 +397,7 @@ def send_other(message, prev_keyboard):
 @bot.message_handler(content_types=['text'])
 def stat_requester(message):
     # Создаем клавиатуру
-    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     keyboard.add(KeyboardButton('Согласен'))
     if message.text == 'Партнерская программа':
         bot.send_message(message.chat.id,
@@ -399,8 +425,8 @@ def final_message(message):
     keyboard.add(telebot.types.KeyboardButton("Начать с начала"))
     keyboard.add(telebot.types.KeyboardButton("Отправить ответы и приступить к отправке файлов"))
 
-    bot.send_message(message.chat.id, "Если ваша заявка пройдет модерацию, с вами свяжется "
-                                      "менеджер в течение 1-3 дней в зависимости от загруженности.\n\n"
+    bot.send_message(message.chat.id, "Спасибо, ваш ответ записан. Если ваша заявка пройдет модерацию, "
+                                      " с вами свяжется менеджер в течение 1-3 дней в зависимости от загруженности.\n\n"
 
                                       " Если менеджер с вами не связался, ваша заявка не была апрувлена по трем причинам: \n"
                                       "- низкое качество траффика по предоставленным данным; \n"
@@ -409,6 +435,8 @@ def final_message(message):
 
                                       "Просим быть внимательными и не оставлять вопросы без ответа. Это очень важно при принятии решения! :)",
                      parse_mode='HTML', reply_markup=keyboard)
+    with open("user_responses.xlsx", "rb") as file:
+        bot.send_document(chat_id=target_user_id, document=file, caption="Ответы пользователей")
 
     log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Запрос стат-ки", message.text)
 
@@ -421,9 +449,9 @@ def handle_button_click(message):
         # Перезапускаем бота с начала
         bot.clear_step_handler_by_chat_id(message.chat.id)
         start(message)
-    elif message.text == "Отправить ответы и приступить к отправке файлов":
+    elif message.text == "Приступить к отправке файлов":
         # Отправка файла с ответами указанному пользователю
-        target_user_id = 5319468429  # 62667001 475132584, # Замените на ID целевого пользователя
+        #target_user_id = 62667001 #5319468429  # 62667001 475132584, # Замените на ID целевого пользователя
         with open("user_responses.xlsx", "rb") as file:
             bot.send_document(chat_id=target_user_id, document=file, caption="Ответы пользователей")
             bot.send_message(message.chat.id, "Ответы отправлены, спасибо! Не забудьте отправить вложения.")
