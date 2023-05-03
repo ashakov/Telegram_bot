@@ -136,6 +136,7 @@ def handle_callback_query(message):
 
                                   " *Для данного источника трафика может потребоваться дополнительная проверка после прохождения модерации.",
                          parse_mode='HTML', reply_markup=remove_keyboard)
+        bot.register_next_step_handler(message, ask_experience)
     elif message.text == 'ASO':
 
         bot.send_message(chat_id, "- Укажите ссылку на приложение, место в рейтинге; \n"
@@ -144,6 +145,7 @@ def handle_callback_query(message):
 
                                   "НА ДАННОМ ЭТАПЕ ФАЙЛЫ ПРИКРЕПЛЯТЬ НЕ НУЖНО. В самом конце после ответа на вопросы у вас будет возможность прикрепить все необходимые видео/фото материалы.",
                          parse_mode='HTML', reply_markup=remove_keyboard)
+        bot.register_next_step_handler(message, ask_experience)
     elif message.text == "Контекстная реклама":
 
         bot.send_message(chat_id, "- Укажите, по каким ключам планируете запускать рекламу, где? \n"
@@ -153,6 +155,7 @@ def handle_callback_query(message):
 
                                   "*Для данного источника трафика может потребоваться дополнительная проверка после прохождения модерации.",
                          parse_mode='HTML', reply_markup=remove_keyboard)
+        bot.register_next_step_handler(message, ask_experience)
     elif message.text == "Социальные сети":
 
         bot.send_message(chat_id, "- Укажите, являетесь ли вы владельцем сообщества/ планируете закупать рекламу. \n"
@@ -161,6 +164,7 @@ def handle_callback_query(message):
 
                                   "НА ДАННОМ ЭТАПЕ ФАЙЛЫ ПРИКРЕПЛЯТЬ НЕ НУЖНО. В самом конце после ответа на вопросы у вас будет возможность прикрепить все необходимые видео/фото материалы.",
                          parse_mode='HTML', reply_markup=remove_keyboard)
+        bot.register_next_step_handler(message, ask_experience)
     elif message.text == "Стриминг":
 
         bot.send_message(chat_id, "- Укажите ссылки на стримы,\n "
@@ -169,6 +173,7 @@ def handle_callback_query(message):
                                   "- Если вы планируете закупать рекламу у стримеров, также укажите ссылки на их стримы, по возможности портфолио (формат - текстовый файл), формат размещения БК “Лига Ставок”. \n\n "
                                   "НА ДАННОМ ЭТАПЕ ФАЙЛЫ ПРИКРЕПЛЯТЬ НЕ НУЖНО. В самом конце после ответа на вопросы у вас будет возможность прикрепить все необходимые видео/фото материалы."
                          , parse_mode='HTML', reply_markup=remove_keyboard)
+        bot.register_next_step_handler(message, ask_experience)
     elif message.text == "Youtube трафик":
 
         bot.send_message(chat_id, "-Укажите ссылку/и на YouTube канал/ы;\n"
@@ -178,9 +183,11 @@ def handle_callback_query(message):
 
                                   "НА ДАННОМ ЭТАПЕ ФАЙЛЫ ПРИКРЕПЛЯТЬ НЕ НУЖНО. В самом конце после ответа на вопросы у вас будет возможность прикрепить все необходимые видео/фото материалы.",
                          parse_mode='HTML', reply_markup=remove_keyboard)
+        bot.register_next_step_handler(message, ask_experience)
     elif message.text == "Другое":
 
         bot.send_message(chat_id, "Укажите источник самостоятельно")
+        bot.register_next_step_handler(message, ask_experience)
     elif message.text == "Нет активных источников":
 
         bot.send_message(chat_id, "Спасибо, ваш ответ записан. Если ваша заявка пройдет модерацию, "
@@ -199,11 +206,11 @@ def handle_callback_query(message):
             bot.send_message(message.chat.id, "Ответы сохраненны, спасибо!")
             # Удаляем обработчик следующего шага после выполнения
         bot.clear_step_handler_by_chat_id(message.chat.id)
-        start(message)
+        #start(message)
 
     log_response(datetime.now(), message.chat.id, message.from_user.first_name, "Источник трафика",
                      message.text)
-    bot.register_next_step_handler(message, ask_experience)
+
 
 
 @bot.message_handler(content_types=['text', 'photo', 'video', 'document'])
@@ -336,6 +343,8 @@ def send_statistics(message):
                          reply_markup=keyboard)
         bot.register_next_step_handler(message, prev_payments)
     elif message.text == "Нет":
+        log_response(datetime.now(), message.chat.id, message.from_user.first_name,
+                     "Был ли у вас опыт в сфере арбитража трафика?", message.text)
         bot.send_message(message.chat.id, "Спасибо, ваш ответ записан. Если ваша заявка пройдет модерацию, "
                                       " с вами свяжется менеджер в течение 1-3 дней в зависимости от загруженности.\n\n"
 
