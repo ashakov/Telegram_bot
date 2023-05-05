@@ -26,9 +26,10 @@ sheet["E1"] = "Response"
 sheet["F1"] = "File_name"
 bot = telebot.TeleBot('6100483283:AAGAXER5F5lEn7f_vZaRc0Ofsik_UoPZ8H4')
 #Пользователь, корому будут отправляться ответы и файлы:
-target_user_id = 5319468429 # 62667001
+target_user_id =  62667001 #5319468429
 
 # bot.delete_webhook()
+bot.enable_save_next_step_handlers(False)
 
 
 # функция для записи ответа пользователя в Excel файл
@@ -191,7 +192,7 @@ def handle_callback_query(message):
     elif message.text == "Нет активных источников":
 
         bot.send_message(chat_id, "Спасибо, ваш ответ записан. Если ваша заявка пройдет модерацию, "
-                                      " с вами свяжется менеджер в течение 1-3 дней в зависимости от загруженности.\n\n"
+                                      " с вами свяжется менеджер в течение 1-3 рабочих дней в зависимости от загруженности.\n\n"
 
                                       " Если менеджер с вами не связался, ваша заявка не была апрувлена по трем причинам: \n"
                                       "- низкое качество траффика по предоставленным данным; \n"
@@ -343,10 +344,10 @@ def send_statistics(message):
                          reply_markup=keyboard)
         bot.register_next_step_handler(message, prev_payments)
     elif message.text == "Нет":
-        log_response(datetime.now(), message.chat.id, message.from_user.first_name,
-                     "Был ли у вас опыт в сфере арбитража трафика?", message.text)
-        bot.send_message(message.chat.id, "Спасибо, ваш ответ записан. Если ваша заявка пройдет модерацию, "
-                                      " с вами свяжется менеджер в течение 1-3 дней в зависимости от загруженности.\n\n"
+      log_response(datetime.now(), message.chat.id, message.from_user.first_name,
+                 "Был ли у вас опыт в сфере арбитража трафика?", message.text)
+      bot.send_message(message.chat.id, "Спасибо, ваш ответ записан. Если ваша заявка пройдет модерацию, "
+                                      " с вами свяжется менеджер в течение 1-3 рабочих дней в зависимости от загруженности.\n\n"
 
                                       " Если менеджер с вами не связался, ваша заявка не была апрувлена по трем причинам: \n"
                                       "- низкое качество траффика по предоставленным данным; \n"
@@ -355,7 +356,7 @@ def send_statistics(message):
 
                                       "Просим быть внимательными и не оставлять вопросы без ответа. Это очень важно при принятии решения! :)",
                          parse_mode='HTML')
-        with open("user_responses.xlsx", "rb") as file:
+      with open("user_responses.xlsx", "rb") as file:
             bot.send_document(chat_id=target_user_id, document=file, caption="Ответы пользователей")
             #bot.send_message(message.chat.id, "Ответы сохраненны, спасибо!")
     # Устанавливаем значение ключа 'ask_experience_done' в True после выполнения функции
@@ -435,7 +436,7 @@ def final_message(message):
     keyboard.add(telebot.types.KeyboardButton("Отправить ответы и приступить к отправке файлов"))
 
     bot.send_message(message.chat.id, "Спасибо, ваш ответ записан. Если ваша заявка пройдет модерацию, "
-                                      " с вами свяжется менеджер в течение 1-3 дней в зависимости от загруженности.\n\n"
+                                      " с вами свяжется менеджер в течение 1-3 рабочих дней в зависимости от загруженности.\n\n"
 
                                       " Если менеджер с вами не связался, ваша заявка не была апрувлена по трем причинам: \n"
                                       "- низкое качество траффика по предоставленным данным; \n"
